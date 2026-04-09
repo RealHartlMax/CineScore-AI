@@ -80,6 +80,7 @@ jobs:
     if: needs.detect.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     outputs:
+      tag_ready: ${{ steps.tag.outputs.tag_ready }}
       tag_created: ${{ steps.tag.outputs.tag_created }}
       tag_reason: ${{ steps.tag.outputs.tag_reason }}
 
@@ -98,6 +99,7 @@ jobs:
           git fetch --tags origin
           if git ls-remote --tags origin "refs/tags/${TAG_NAME}" | grep -q "${TAG_NAME}$"; then
             echo "Tag ${TAG_NAME} already exists on origin."
+            echo "tag_ready=true" >> "$GITHUB_OUTPUT"
             echo "tag_created=false" >> "$GITHUB_OUTPUT"
             echo "tag_reason=already-exists" >> "$GITHUB_OUTPUT"
             exit 0
@@ -107,6 +109,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag "${TAG_NAME}" "${GITHUB_SHA}" -m "Release ${TAG_NAME}"
           git push origin "refs/tags/${TAG_NAME}"
+          echo "tag_ready=true" >> "$GITHUB_OUTPUT"
           echo "tag_created=true" >> "$GITHUB_OUTPUT"
           echo "tag_reason=created" >> "$GITHUB_OUTPUT"
 
@@ -115,7 +118,7 @@ jobs:
     needs:
       - detect
       - create-tag
-    if: needs.detect.outputs.should_release == 'true' && needs.create-tag.outputs.tag_created == 'true'
+    if: needs.detect.outputs.should_release == 'true' && needs.create-tag.outputs.tag_ready == 'true'
     uses: ./.github/workflows/release.yml
     with:
       tag_name: ${{ needs.detect.outputs.tag_name }}
@@ -146,6 +149,7 @@ jobs:
           TAG_NAME: ${{ needs.detect.outputs.tag_name }}
           VALIDATE_RESULT: ${{ needs.validate-version.result }}
           CREATE_TAG_RESULT: ${{ needs.create-tag.result }}
+          TAG_READY: ${{ needs.create-tag.outputs.tag_ready }}
           TAG_CREATED: ${{ needs.create-tag.outputs.tag_created }}
           TAG_REASON: ${{ needs.create-tag.outputs.tag_reason }}
           RELEASE_RESULT: ${{ needs.release.result }}
@@ -161,8 +165,14 @@ jobs:
             summary_body="Release marker was found for ${VERSION}, but version validation failed. The commit marker must match src/cinescore_ai/version.py."
           elif [ "${CREATE_TAG_RESULT}" = "failure" ]; then
             summary_body="Release marker was found for ${VERSION}, but creating tag ${TAG_NAME} failed."
-          elif [ "${TAG_CREATED}" != "true" ]; then
-            summary_body="No new release started: tag ${TAG_NAME} already exists on origin."
+          elif [ "${TAG_READY}" != "true" ]; then
+            summary_body="Release could not continue because tag ${TAG_NAME} is not ready."
+          elif [ "${TAG_REASON}" = "already-exists" ] && [ "${RELEASE_RESULT}" = "success" ]; then
+            summary_body="Tag ${TAG_NAME} already existed on origin. Reused existing tag and started the release pipeline successfully."
+          elif [ "${TAG_REASON}" = "already-exists" ] && [ "${RELEASE_RESULT}" = "failure" ]; then
+            summary_body="Tag ${TAG_NAME} already existed on origin. Reused existing tag, but the downstream reusable release workflow failed."
+          elif [ "${TAG_CREATED}" != "true" ] && [ "${TAG_REASON}" = "already-exists" ]; then
+            summary_body="Tag ${TAG_NAME} already exists on origin and will be reused for release publication."
           elif [ "${RELEASE_RESULT}" = "success" ]; then
             summary_body="Release pipeline started successfully for ${TAG_NAME}."
           elif [ "${RELEASE_RESULT}" = "failure" ]; then
@@ -184,6 +194,7 @@ jobs:
             echo "- Tag: ${TAG_NAME:-n/a}"
             echo "- Validate version: ${VALIDATE_RESULT}"
             echo "- Create tag: ${CREATE_TAG_RESULT} (${TAG_REASON:-n/a})"
+            echo "- Tag ready: ${TAG_READY:-false}"
             echo "- Tag created: ${TAG_CREATED:-false}"
             echo "- Publish release: ${RELEASE_RESULT}"
           } >> "$GITHUB_STEP_SUMMARY"
