@@ -61,9 +61,13 @@ jobs:
         run: |
           REQUESTED_VERSION="${{ needs.detect.outputs.version }}"
           APP_VERSION=$(python -c "import sys; sys.path.insert(0, 'src'); from cinescore_ai.version import get_app_version; print(get_app_version())")
+          NORMALIZED_REQUESTED_VERSION=$(python -c "from packaging.version import Version; print(Version('${REQUESTED_VERSION}'))")
+          NORMALIZED_APP_VERSION=$(python -c "from packaging.version import Version; print(Version('${APP_VERSION}'))")
           echo "Requested version: $REQUESTED_VERSION"
           echo "Application version: $APP_VERSION"
-          if [ "$REQUESTED_VERSION" != "$APP_VERSION" ]; then
+          echo "Normalized requested version: $NORMALIZED_REQUESTED_VERSION"
+          echo "Normalized application version: $NORMALIZED_APP_VERSION"
+          if [ "$NORMALIZED_REQUESTED_VERSION" != "$NORMALIZED_APP_VERSION" ]; then
             echo "Commit message version does not match cinescore_ai.version."
             exit 1
           fi
