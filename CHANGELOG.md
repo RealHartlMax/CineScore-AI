@@ -9,7 +9,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Hotfix Release
 
-Additional hotfix following the `v0.1.2c` release.
+Follow-up hotfix after the `v0.1.2c` release.
 
 ### Added
 
@@ -24,6 +24,10 @@ Additional hotfix following the `v0.1.2c` release.
   - Windows installer job runs in parallel after validation
   - Removed unreliable release asset polling; checksums now passed directly from build jobs
   - Metadata update now uses direct workflow outputs instead of GitHub API lookups
+
+- **Release workflow robustness**
+  - Version normalization now handles both punctuated (`.d`) and unpunctuated (`d`) prerelease suffixes
+  - Validation regex expanded to capture all single-letter hotfix variants
 
 - **Discord notifications**
   - Release workflow sends changelog notification after GitHub release
@@ -232,7 +236,7 @@ Format basierend auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/)
 
 ### Hotfix-Release
 
-Zusaetzlicher Hotfix nach dem `v0.1.2c`-Release.
+Nachgelagerter Hotfix nach dem `v0.1.2c`-Release.
 
 ### Hinzugefuegt
 
@@ -247,6 +251,10 @@ Zusaetzlicher Hotfix nach dem `v0.1.2c`-Release.
   - Windows-Installer-Job laeuft parallel nach Validierung
   - Unzuverlaessiges Release-Asset-Polling entfernt; Checksums werden jetzt direkt von Build-Jobs uebergeben
   - Metadaten-Update nutzt jetzt direkte Workflow-Outputs statt GitHub-API-Lookups
+
+- **Release-Workflow-Robustheit**
+  - Versionsnormalisierung behandelt jetzt sowohl punktierte (`.d`) als auch unpunktierte (`d`) Prerelease-Suffixe
+  - Validierungs-Regex erweitert fuer alle Single-Letter-Hotfix-Varianten
 
 - **Discord-Benachrichtigungen**
   - Release-Workflow sendet Changelog-Benachrichtigung nach GitHub-Release

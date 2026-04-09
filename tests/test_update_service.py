@@ -46,6 +46,14 @@ class UpdateServiceTests(unittest.TestCase):
         self.assertTrue(is_newer_version("0.1.2", "0.1.2c"))
         self.assertTrue(is_newer_version("0.1.2c", "0.1.1"))
 
+    def test_is_newer_version_handles_dot_suffix_prereleases(self) -> None:
+        # Test punctuated prerelease suffixes like 0.1.2.d
+        self.assertFalse(is_newer_version("0.1.2.d", "0.1.2"))
+        self.assertTrue(is_newer_version("0.1.2", "0.1.2.d"))
+        self.assertTrue(is_newer_version("0.1.2.d", "0.1.1"))
+        # Ensure ordering: .d comes before stable 0.1.2
+        self.assertTrue(is_newer_version("0.1.2", "0.1.2.d"))
+
     def test_check_for_update_parses_latest_release(self) -> None:
         session = _FakeSession(
             _FakeResponse(

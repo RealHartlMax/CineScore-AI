@@ -19,16 +19,18 @@
         "en": [
           "Real Windows installer (.exe) now built by CI and included in releases",
           "Release workflow optimized with parallel Windows installer build",
-          "Discord notifications integrated for changelog and release events"
+          "Discord notifications integrated for changelog and release events",
+          "Version normalization now handles both punctuated and unpunctuated prerelease suffixes"
         ],
         "de": [
           "Echter Windows-Installer (.exe) wird jetzt von CI gebaut und ist in Releases enthalten",
           "Release-Workflow mit parallelem Windows-Installer-Build optimiert",
-          "Discord-Benachrichtigungen fuer Changelog und Release-Events integriert"
+          "Discord-Benachrichtigungen fuer Changelog und Release-Events integriert",
+          "Versionsnormalisierung behandelt jetzt punktierte und unpunktierte Prerelease-Suffixe"
         ]
       },
-      "release_notes_en": "Additional hotfix following the v0.1.2c release with Windows installer and Discord integration. See CHANGELOG.md for full details.",
-      "release_notes_de": "Zusaetzlicher Hotfix nach dem v0.1.2c-Release mit Windows-Installer und Discord-Integration. Siehe CHANGELOG.md fuer vollstaendige Details.",
+      "release_notes_en": "Hotfix following v0.1.2c with Windows installer, Discord integration, and improved version handling. See CHANGELOG.md for full details.",
+      "release_notes_de": "Hotfix nach v0.1.2c mit Windows-Installer, Discord-Integration und verbesserter Versionsverwaltung. Siehe CHANGELOG.md fuer vollstaendige Details.",
       "min_python_version": "3.10",
       "platforms": ["windows", "macos", "linux"],
       "breaking_changes": false,
