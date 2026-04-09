@@ -26,6 +26,9 @@ on:
 permissions:
   contents: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   context:
     name: Resolve release context
@@ -43,8 +46,8 @@ jobs:
           INPUT_TAG_NAME: ${{ inputs.tag_name }}
           INPUT_RELEASE_SHA: ${{ inputs.release_sha }}
         run: |
-          SEMVER_PATTERN='^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$'
-          TAG_PATTERN='^v[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$'
+          VERSION_PATTERN='^[0-9]+\.[0-9]+\.[0-9]+([-.]?[0-9A-Za-z][0-9A-Za-z.-]*)?$'
+          TAG_PATTERN='^v[0-9]+\.[0-9]+\.[0-9]+([-.]?[0-9A-Za-z][0-9A-Za-z.-]*)?$'
 
           # Prefer explicit workflow inputs (workflow_call/workflow_dispatch)
           # over event ref values to avoid resolving branch names like 'main'.
@@ -65,8 +68,8 @@ jobs:
             exit 1
           fi
 
-          # Allow raw semver input like 0.1.1 and normalize to v0.1.1.
-          if [[ "${RELEASE_TAG}" =~ ${SEMVER_PATTERN} ]]; then
+          # Allow raw version input like 0.1.1 or 0.1.2b and normalize to a v-prefixed tag.
+          if [[ "${RELEASE_TAG}" =~ ${VERSION_PATTERN} ]]; then
             RELEASE_TAG="v${RELEASE_TAG}"
           fi
 
@@ -83,7 +86,7 @@ jobs:
             fi
 
             if ! [[ "${RELEASE_TAG}" =~ ${TAG_PATTERN} ]]; then
-              echo "Invalid release tag '${RELEASE_TAG}'. Expected format 'vX.Y.Z' (optionally with pre-release/build suffix)."
+              echo "Invalid release tag '${RELEASE_TAG}'. Expected format 'vX.Y.Z' or 'vX.Y.Zsuffix' (optionally with separator)."
               exit 1
             fi
           fi
@@ -134,6 +137,7 @@ jobs:
       - name: Run tests
         env:
           QT_QPA_PLATFORM: offscreen
+          QT_MAC_WANTS_LAYER: "1"
         run: python -m pytest
 
   release:
@@ -162,6 +166,7 @@ jobs:
         id: notes
         shell: bash
         run: |
+          VERSION="${{ needs.context.outputs.release_version }}"
           PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || true)
           if [ -n "$PREVIOUS_TAG" ]; then
             LOG=$(git log "$PREVIOUS_TAG"..HEAD --pretty=format:'- %s')
@@ -178,6 +183,13 @@ jobs:
             echo
             echo "### Highlights"
             echo "$LOG"
+            echo
+            echo "### Assets"
+            echo "- Windows installer: `CineScore-AI-Setup.exe`"
+            echo "- Windows portable runtime: `CineScore-AI-v${VERSION}-runtime-windows.zip`"
+            echo "- macOS/Linux portable runtime: `CineScore-AI-v${VERSION}-runtime-macos-linux.tar.gz`"
+            echo "- Python source distribution: `cinescore_ai-${VERSION}.tar.gz`"
+            echo "- GitHub auto-generated source snapshots: `Source code (zip)` and `Source code (tar.gz)`"
             echo
             echo "### Installation"
             echo '- Source checkout: install with `python -m pip install -e .[dev]`'
@@ -200,8 +212,8 @@ jobs:
           cp README.md LICENSE pyproject.toml release/CineScore-AI-runtime/
 
           cd release
-          zip -r "CineScore-AI-runtime-v${VERSION}.zip" "CineScore-AI-runtime"
-          tar -czf "CineScore-AI-runtime-v${VERSION}.tar.gz" "CineScore-AI-runtime"
+          zip -r "CineScore-AI-v${VERSION}-runtime-windows.zip" "CineScore-AI-runtime"
+          tar -czf "CineScore-AI-v${VERSION}-runtime-macos-linux.tar.gz" "CineScore-AI-runtime"
 
       - name: Create checksums
         id: checksums
@@ -209,13 +221,13 @@ jobs:
         run: |
           VERSION="${{ needs.context.outputs.release_version }}"
           cd release
-          ZIP_FILE="CineScore-AI-runtime-v${VERSION}.zip"
-          TAR_GZ_FILE="CineScore-AI-runtime-v${VERSION}.tar.gz"
+          ZIP_FILE="CineScore-AI-v${VERSION}-runtime-windows.zip"
+          TAR_GZ_FILE="CineScore-AI-v${VERSION}-runtime-macos-linux.tar.gz"
           ZIP_SHA=$(sha256sum "${ZIP_FILE}" | awk '{print $1}')
           TAR_GZ_SHA=$(sha256sum "${TAR_GZ_FILE}" | awk '{print $1}')
           echo "runtime_zip_sha256=${ZIP_SHA}" >> "$GITHUB_OUTPUT"
           echo "runtime_tar_gz_sha256=${TAR_GZ_SHA}" >> "$GITHUB_OUTPUT"
-          sha256sum "CineScore-AI-runtime-v${VERSION}.zip" "CineScore-AI-runtime-v${VERSION}.tar.gz" > "CineScore-AI-v${VERSION}-SHA256SUMS.txt"
+          sha256sum "${ZIP_FILE}" "${TAR_GZ_FILE}" > "CineScore-AI-v${VERSION}-SHA256SUMS.txt"
 
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
@@ -256,6 +268,7 @@ jobs:
           python - <<'PY'
           import hashlib
           import json
+          import re
           import time
           import urllib.error
           import urllib.request
@@ -350,15 +363,85 @@ jobs:
               )
 
           versions_path = Path("versions.json")
+          changelog_path = Path("CHANGELOG.md")
           data = json.loads(versions_path.read_text(encoding="utf-8"))
+          changelog_text = changelog_path.read_text(encoding="utf-8")
+
+          def _extract_language_blocks(text: str) -> tuple[str, str]:
+              marker = "\n# Changelog (Deutsch)\n"
+              if marker not in text:
+                  return text, ""
+              english_block, german_block = text.split(marker, 1)
+              return english_block, german_block
+
+          def _extract_version_block(text: str, version: str) -> str:
+              match = re.search(rf"^## \[{re.escape(version)}\] - .*$", text, flags=re.MULTILINE)
+              if not match:
+                  return ""
+              remaining = text[match.end():]
+              next_match = re.search(r"^## \[", remaining, flags=re.MULTILINE)
+              if next_match:
+                  return text[match.start(): match.end() + next_match.start()]
+              return text[match.start():]
+
+          def _extract_summary(block: str) -> str:
+              summary_match = re.search(r"^### .+?\n\n(.+?)(?:\n\n### |\Z)", block, flags=re.MULTILINE | re.DOTALL)
+              if not summary_match:
+                  return ""
+              summary = summary_match.group(1).strip()
+              summary_lines = [line.strip() for line in summary.splitlines() if line.strip() and not line.strip().startswith("-")]
+              return " ".join(summary_lines).strip()
+
+          def _extract_highlights(block: str) -> list[str]:
+              titles = [title.strip() for title in re.findall(r"^- \*\*(.+?)\*\*", block, flags=re.MULTILINE)]
+              if titles:
+                  return titles[:5]
+              fallback = [line[2:].strip() for line in block.splitlines() if line.startswith("- ")]
+              return fallback[:5]
+
+          english_changelog, german_changelog = _extract_language_blocks(changelog_text)
+          english_block = _extract_version_block(english_changelog, release_version)
+          german_block = _extract_version_block(german_changelog, release_version)
+          english_summary = _extract_summary(english_block)
+          german_summary = _extract_summary(german_block)
+          english_highlights = _extract_highlights(english_block)
+          german_highlights = _extract_highlights(german_block)
 
           releases = data.get("releases", [])
           target = next((item for item in releases if item.get("version") == release_version), None)
           if target is None:
               raise SystemExit(f"Release version {release_version} not found in versions.json")
 
+          download_urls = target.setdefault("download_urls", {})
+          download_urls["windows_exe"] = (
+              f"https://github.com/{github_repository}/releases/download/{release_tag}/CineScore-AI-Setup.exe"
+          )
+          download_urls["runtime_zip"] = (
+              f"https://github.com/{github_repository}/releases/download/{release_tag}/"
+              f"CineScore-AI-v{release_version}-runtime-windows.zip"
+          )
+          download_urls["runtime_tar_gz"] = (
+              f"https://github.com/{github_repository}/releases/download/{release_tag}/"
+              f"CineScore-AI-v{release_version}-runtime-macos-linux.tar.gz"
+          )
+          download_urls["source"] = (
+              f"https://github.com/{github_repository}/archive/refs/tags/{release_tag}.zip"
+          )
+
+          if english_highlights:
+              target["highlights"] = target.get("highlights", {})
+              target["highlights"]["en"] = english_highlights
+          if german_highlights:
+              target["highlights"] = target.get("highlights", {})
+              target["highlights"]["de"] = german_highlights
+
+          if english_summary:
+              target["release_notes_en"] = f"{english_summary} See CHANGELOG.md for full details."
+          if german_summary:
+              target["release_notes_de"] = f"{german_summary} Siehe CHANGELOG.md fuer vollstaendige Details."
+
           checksums = target.setdefault("checksums", {})
-            if windows_exe_sha256:
+          if windows_exe_sha256:
               checksums["windows_exe"] = windows_exe_sha256
           checksums["runtime_zip"] = runtime_zip_sha256
           checksums["runtime_tar_gz"] = runtime_tar_gz_sha256

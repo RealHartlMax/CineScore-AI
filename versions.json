@@ -1,13 +1,49 @@
 {
   "releases": [
     {
+      "version": "0.1.2b",
+      "release_date": "2026-04-09",
+      "stable": false,
+      "download_urls": {
+        "windows_exe": "https://github.com/RealHartlMax/CineScore-AI/releases/download/v0.1.2b/CineScore-AI-Setup.exe",
+        "runtime_zip": "https://github.com/RealHartlMax/CineScore-AI/releases/download/v0.1.2b/CineScore-AI-v0.1.2b-runtime-windows.zip",
+        "runtime_tar_gz": "https://github.com/RealHartlMax/CineScore-AI/releases/download/v0.1.2b/CineScore-AI-v0.1.2b-runtime-macos-linux.tar.gz",
+        "source": "https://github.com/RealHartlMax/CineScore-AI/archive/refs/tags/v0.1.2b.zip"
+      },
+      "checksums": {
+        "windows_exe": "SHA256_HASH_HERE",
+        "runtime_zip": "SHA256_HASH_HERE",
+        "runtime_tar_gz": "SHA256_HASH_HERE"
+      },
+      "highlights": {
+        "en": [
+          "Release and auto-tag workflows now accept hotfix tags like v0.1.2b",
+          "versions.json sync now updates checksums, download URLs, highlights, and release notes automatically",
+          "Platform-specific runtime asset names make Windows vs. macOS/Linux packages obvious",
+          "Release validation and UI smoke tests are more robust on macOS and Windows CI"
+        ],
+        "de": [
+          "Release- und Auto-Tag-Workflows akzeptieren jetzt Hotfix-Tags wie v0.1.2b",
+          "Die versions.json-Synchronisierung aktualisiert nun Checksums, Download-URLs, Highlights und Release-Notes automatisch",
+          "Plattformspezifische Runtime-Dateinamen machen Windows- und macOS/Linux-Pakete direkt erkennbar",
+          "Release-Validierung und UI-Smoke-Tests laufen robuster auf macOS- und Windows-CI"
+        ]
+      },
+      "release_notes_en": "Release automation and CI hotfix for the follow-up v0.1.2b release candidate. See CHANGELOG.md for full details.",
+      "release_notes_de": "Release-Automation- und CI-Hotfix fuer den nachfolgenden v0.1.2b-Release-Kandidaten. Siehe CHANGELOG.md fuer vollstaendige Details.",
+      "min_python_version": "3.10",
+      "platforms": ["windows", "macos", "linux"],
+      "breaking_changes": false,
+      "deprecations": []
+    },
+    {
       "version": "0.1.2",
       "release_date": "2026-04-09",
       "stable": true,
       "download_urls": {
         "windows_exe": "https://github.com/RealHartlMax/CineScore-AI/releases/download/v0.1.2/CineScore-AI-Setup.exe",
-        "runtime_zip": "https://github.com/RealHartlMax/CineScore-AI/releases/download/v0.1.2/CineScore-AI-v0.1.2-runtime.zip",
-        "runtime_tar_gz": "https://github.com/RealHartlMax/CineScore-AI/releases/download/v0.1.2/CineScore-AI-v0.1.2-runtime.tar.gz",
+        "runtime_zip": "https://github.com/RealHartlMax/CineScore-AI/releases/download/v0.1.2/CineScore-AI-runtime-v0.1.2.zip",
+        "runtime_tar_gz": "https://github.com/RealHartlMax/CineScore-AI/releases/download/v0.1.2/CineScore-AI-runtime-v0.1.2.tar.gz",
         "source": "https://github.com/RealHartlMax/CineScore-AI/archive/refs/tags/v0.1.2.zip"
       },
       "checksums": {
@@ -113,7 +149,7 @@
       "deprecations": []
     }
   ],
-  "latest": "0.1.2",
+  "latest": "0.1.2b",
   "metadata": {
     "project_name": "CineScore-AI",
     "project_url": "https://github.com/RealHartlMax/CineScore-AI",

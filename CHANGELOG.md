@@ -5,6 +5,33 @@ All notable changes to CineScore-AI will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 
+## [0.1.2b] - 2026-04-09
+
+### Hotfix Release
+
+Release automation and CI hotfix for the follow-up `v0.1.2b` release candidate.
+
+### Fixed
+
+- **Version suffix support for hotfix tags**
+  - Release and auto-tag workflows now accept tags like `v0.1.2b` in addition to separator-based suffixes
+  - Updater version sorting now treats `0.1.2b` as a pre-release below stable `0.1.2`
+
+- **Release workflow metadata sync**
+  - Fixed embedded Python indentation in the `versions.json` update step
+  - Release workflow can now sync changelog-derived highlights and release notes into `versions.json`
+
+### Changed
+
+- **Release asset clarity**
+  - Runtime archive names now encode their intended platform directly
+  - Release notes include an `Assets` section that explains which package belongs to Windows vs. macOS/Linux
+
+- **CI stability**
+  - Release validation tests now use the same macOS Qt layer settings as the main CI workflow
+  - UI smoke tests clear the dirty flag before closing to avoid blocking confirmation dialogs in headless runners
+
+
 ## [0.1.2] - 2026-04-09
 
 ### Hotfix Release
@@ -154,6 +181,33 @@ See [README.md](README.md) for detailed installation instructions.
 Alle bemerkenswerten Änderungen an CineScore-AI werden in dieser Datei dokumentiert.
 
 Format basierend auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/)
+
+
+## [0.1.2b] - 2026-04-09
+
+### Hotfix-Release
+
+Release-Automation- und CI-Hotfix fuer den nachfolgenden `v0.1.2b`-Release-Kandidaten.
+
+### Behoben
+
+- **Versionssuffix-Unterstuetzung fuer Hotfix-Tags**
+  - Release- und Auto-Tag-Workflows akzeptieren jetzt Tags wie `v0.1.2b` zusaetzlich zu Suffixen mit Trenner
+  - Die Versionssortierung des Updaters behandelt `0.1.2b` als Vorabversion unterhalb des stabilen `0.1.2`
+
+- **Release-Workflow Metadaten-Synchronisierung**
+  - Einrueckungsfehler im eingebetteten Python des `versions.json`-Update-Schritts behoben
+  - Der Release-Workflow kann nun Highlights und Release-Notes aus dem Changelog nach `versions.json` uebernehmen
+
+### Geaendert
+
+- **Klarere Release-Artefakte**
+  - Die Runtime-Archivnamen tragen jetzt die Zielplattform direkt im Dateinamen
+  - Die Release-Notes enthalten einen Abschnitt `Assets`, der Windows- und macOS/Linux-Pakete klar zuordnet
+
+- **CI-Stabilitaet**
+  - Die Release-Validierungstests verwenden nun dieselben macOS-Qt-Layer-Einstellungen wie der Haupt-CI-Workflow
+  - UI-Smoke-Tests setzen vor dem Schliessen den Dirty-Status zurueck, um blockierende Dialoge auf Headless-Runnern zu vermeiden
 
 
 ## [0.1.2] - 2026-04-09

@@ -188,7 +188,7 @@ Supported markers:
 
 - `release: v0.2.0`
 - `version: 0.2.0`
-- `hotfix: 0.1.1`
+- `hotfix: 0.1.2b`
 
 Important:
 
@@ -220,7 +220,7 @@ Hotfix example:
 ```text
 fix: correct updater edge case
 
-hotfix: 0.1.1
+hotfix: 0.1.2b
 ```
 
 3. Push to the default branch.
@@ -600,7 +600,7 @@ Unterstuetzte Marker:
 
 - `release: v0.2.0`
 - `version: 0.2.0`
-- `hotfix: 0.1.1`
+- `hotfix: 0.1.2b`
 
 Wichtig:
 
@@ -632,7 +632,7 @@ Hotfix-Beispiel:
 ```text
 fix: korrigiere Sonderfall im Updater
 
-hotfix: 0.1.1
+hotfix: 0.1.2b
 ```
 
 3. Auf den Default-Branch pushen.

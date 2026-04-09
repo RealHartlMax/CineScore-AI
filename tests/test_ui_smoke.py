@@ -152,6 +152,7 @@ class SettingsWindowSmokeTests(unittest.TestCase):
                     "Error X: Gemini rejected the WAV response MIME parameter.",
                 )
             finally:
+                window._set_dirty(False)
                 window.close()
 
     def test_wav_error_detection_disabled_when_output_is_mp3(self) -> None:
@@ -179,4 +180,5 @@ class SettingsWindowSmokeTests(unittest.TestCase):
                     )
                 )
             finally:
+                window._set_dirty(False)
                 window.close()

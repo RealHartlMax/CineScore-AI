@@ -67,11 +67,13 @@ class UpdateAvailableDialog(QDialog):
         parent: QWidget,
         current_version: str,
         release: ReleaseInfo,
+        newer_releases: tuple[ReleaseInfo, ...],
         translate,
         can_self_update: bool,
     ) -> None:
         super().__init__(parent)
         self._release = release
+        self._newer_releases = newer_releases
         self._translate = translate
         self.setWindowTitle(translate("Update available"))
         self.resize(720, 480)
@@ -96,7 +98,7 @@ class UpdateAvailableDialog(QDialog):
 
         notes_view = QPlainTextEdit()
         notes_view.setReadOnly(True)
-        notes_view.setPlainText(release.body or translate("No changelog provided for this release."))
+        notes_view.setPlainText(self._build_release_notes())
 
         button_box = QDialogButtonBox()
         self.update_button = button_box.addButton(
@@ -117,6 +119,19 @@ class UpdateAvailableDialog(QDialog):
         layout.addWidget(notes_label)
         layout.addWidget(notes_view, 1)
         layout.addWidget(button_box)
+
+    def _build_release_notes(self) -> str:
+        releases = self._newer_releases or ((self._release,) if self._release else ())
+        sections: list[str] = []
+        for release in releases:
+            body = (release.body or "").strip()
+            if not body:
+                continue
+            title = release.title.strip() or f"v{release.version}"
+            sections.append(f"===== {title} =====\n{body}")
+        if sections:
+            return "\n\n".join(sections)
+        return self._translate("No changelog provided for this release.")
 
         if not can_self_update:
             hint_label = QLabel(translate("Automatic update is currently only supported on Windows."))
@@ -619,7 +634,7 @@ class SettingsWindow(QMainWindow):
             )
             if not silent or not self._update_dialog_shown:
                 self._update_dialog_shown = True
-                self._show_update_dialog(result.current_version, release)
+                self._show_update_dialog(result.current_version, release, result.newer_releases)
             return
         if not silent:
             self._append_status(self._t("CineScore AI is already up to date."))
@@ -640,13 +655,14 @@ class SettingsWindow(QMainWindow):
             self._t("Update check failed: {error}", error=error_message),
         )
 
-    def _show_update_dialog(self, current_version: str, release: ReleaseInfo) -> None:
+    def _show_update_dialog(self, current_version: str, release: ReleaseInfo, newer_releases: tuple[ReleaseInfo, ...]) -> None:
         if self._update_service is None:
             return
         dialog = UpdateAvailableDialog(
             parent=self,
             current_version=current_version,
             release=release,
+            newer_releases=newer_releases,
             translate=self._t,
             can_self_update=self._update_service.can_start_self_update(),
         )

@@ -16,12 +16,12 @@ from cinescore_ai.update_service import (
 
 
 class _FakeResponse:
-    def __init__(self, status_code: int, payload: dict[str, object]) -> None:
+    def __init__(self, status_code: int, payload: object) -> None:
         self.status_code = status_code
         self._payload = payload
         self.text = ""
 
-    def json(self) -> dict[str, object]:
+    def json(self) -> object:
         return self._payload
 
 
@@ -41,17 +41,24 @@ class UpdateServiceTests(unittest.TestCase):
         self.assertFalse(is_newer_version("0.1.0", "0.1.0"))
         self.assertFalse(is_newer_version("0.1.0-beta", "0.1.0"))
 
+    def test_is_newer_version_handles_letter_suffix_prereleases(self) -> None:
+        self.assertFalse(is_newer_version("0.1.2b", "0.1.2"))
+        self.assertTrue(is_newer_version("0.1.2", "0.1.2b"))
+        self.assertTrue(is_newer_version("0.1.2b", "0.1.1"))
+
     def test_check_for_update_parses_latest_release(self) -> None:
         session = _FakeSession(
             _FakeResponse(
                 200,
-                {
-                    "tag_name": "v0.2.0",
-                    "name": "v0.2.0",
-                    "body": "- Added updater\n- Added changelog popup",
-                    "html_url": "https://github.com/RealHartlMax/CineScore-AI/releases/tag/v0.2.0",
-                    "zipball_url": "https://api.github.com/repos/RealHartlMax/CineScore-AI/zipball/v0.2.0",
-                },
+                [
+                    {
+                        "tag_name": "v0.2.0",
+                        "name": "v0.2.0",
+                        "body": "- Added updater\n- Added changelog popup",
+                        "html_url": "https://github.com/RealHartlMax/CineScore-AI/releases/tag/v0.2.0",
+                        "zipball_url": "https://api.github.com/repos/RealHartlMax/CineScore-AI/zipball/v0.2.0",
+                    }
+                ],
             )
         )
         service = GitHubReleaseUpdateService(session=session)
@@ -62,7 +69,45 @@ class UpdateServiceTests(unittest.TestCase):
         self.assertIsNotNone(result.latest_release)
         assert result.latest_release is not None
         self.assertEqual(result.latest_release.version, "0.2.0")
+        self.assertEqual([release.version for release in result.newer_releases], ["0.2.0"])
         self.assertEqual(len(session.calls), 1)
+
+    def test_check_for_update_returns_all_newer_releases(self) -> None:
+        session = _FakeSession(
+            _FakeResponse(
+                200,
+                [
+                    {
+                        "tag_name": "v0.1.2b",
+                        "name": "v0.1.2b",
+                        "body": "hotfix body",
+                        "html_url": "https://github.com/RealHartlMax/CineScore-AI/releases/tag/v0.1.2b",
+                        "zipball_url": "https://api.github.com/repos/RealHartlMax/CineScore-AI/zipball/v0.1.2b",
+                    },
+                    {
+                        "tag_name": "v0.1.2",
+                        "name": "v0.1.2",
+                        "body": "stable body",
+                        "html_url": "https://github.com/RealHartlMax/CineScore-AI/releases/tag/v0.1.2",
+                        "zipball_url": "https://api.github.com/repos/RealHartlMax/CineScore-AI/zipball/v0.1.2",
+                    },
+                    {
+                        "tag_name": "v0.1.1",
+                        "name": "v0.1.1",
+                        "body": "older body",
+                        "html_url": "https://github.com/RealHartlMax/CineScore-AI/releases/tag/v0.1.1",
+                        "zipball_url": "https://api.github.com/repos/RealHartlMax/CineScore-AI/zipball/v0.1.1",
+                    },
+                ],
+            )
+        )
+        service = GitHubReleaseUpdateService(session=session)
+
+        result = service.check_for_update(current_version="0.1.0")
+
+        self.assertTrue(result.update_available)
+        self.assertEqual(result.latest_release.version, "0.1.2b")
+        self.assertEqual([release.version for release in result.newer_releases], ["0.1.2b", "0.1.2", "0.1.1"])
 
     def test_check_for_update_treats_404_as_no_release_yet(self) -> None:
         response = _FakeResponse(404, {})

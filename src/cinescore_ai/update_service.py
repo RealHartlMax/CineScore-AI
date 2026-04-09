@@ -34,6 +34,7 @@ class UpdateCheckResult:
     current_version: str
     latest_release: ReleaseInfo | None
     update_available: bool
+    newer_releases: tuple[ReleaseInfo, ...] = ()
 
 
 class GitHubReleaseUpdateService:
@@ -52,6 +53,10 @@ class GitHubReleaseUpdateService:
     def latest_release_api_url(self) -> str:
         return f"https://api.github.com/repos/{self._owner}/{self._repo}/releases/latest"
 
+    @property
+    def releases_api_url(self) -> str:
+        return f"https://api.github.com/repos/{self._owner}/{self._repo}/releases?per_page=20"
+
     def check_for_update(self, current_version: str | None = None) -> UpdateCheckResult:
         resolved_current_version = (current_version or get_app_version()).strip() or "0.0.0"
         if self._session is None:
@@ -60,7 +65,7 @@ class GitHubReleaseUpdateService:
         try:
             response = self._session.request(
                 "GET",
-                self.latest_release_api_url,
+                self.releases_api_url,
                 headers={
                     "Accept": "application/vnd.github+json",
                     "User-Agent": "CineScore-AI-Updater",
@@ -75,6 +80,7 @@ class GitHubReleaseUpdateService:
             return UpdateCheckResult(
                 current_version=resolved_current_version,
                 latest_release=None,
+                newer_releases=(),
                 update_available=False,
             )
 
@@ -88,11 +94,17 @@ class GitHubReleaseUpdateService:
         except Exception as exc:
             raise RuntimeError(f"Update check returned invalid JSON: {exc}") from exc
 
-        latest_release = _parse_release_info(payload)
+        if not isinstance(payload, list):
+            raise RuntimeError("GitHub returned an unexpected releases payload.")
+
+        parsed_releases = tuple(_parse_release_info(item) for item in payload)
+        newer_releases = tuple(release for release in parsed_releases if is_newer_version(release.version, resolved_current_version))
+        latest_release = newer_releases[0] if newer_releases else None
         return UpdateCheckResult(
             current_version=resolved_current_version,
             latest_release=latest_release,
-            update_available=is_newer_version(latest_release.version, resolved_current_version),
+            newer_releases=newer_releases,
+            update_available=bool(newer_releases),
         )
 
     def can_start_self_update(self) -> bool:
@@ -309,14 +321,20 @@ def _parse_release_info(payload: Any) -> ReleaseInfo:
     )
 
 
-def _version_sort_key(value: str) -> tuple[tuple[int, ...], str]:
+def _version_sort_key(value: str) -> tuple[tuple[int, ...], int, str]:
     normalized = normalize_version(value)
-    numeric_portion, _, suffix = normalized.partition("-")
-    number_parts = [int(part) for part in re.findall(r"\d+", numeric_portion)]
+    match = re.match(r"^(\d+)\.(\d+)\.(\d+)(?:([-.]?)([A-Za-z][0-9A-Za-z.-]*))?$", normalized)
+    if match:
+        number_parts = tuple(int(part) for part in match.group(1, 2, 3))
+        suffix = (match.group(5) or "").lower()
+        stable_rank = 1 if not suffix else 0
+        return number_parts, stable_rank, suffix
+
+    number_parts = [int(part) for part in re.findall(r"\d+", normalized)]
     while len(number_parts) < 3:
         number_parts.append(0)
-    stable_rank = 1 if not suffix else 0
-    return tuple(number_parts[:3]), stable_rank, suffix.lower()
+    stable_rank = 1
+    return tuple(number_parts[:3]), stable_rank, normalized.lower()
 
 
 def _ps_quote(value: str) -> str:
