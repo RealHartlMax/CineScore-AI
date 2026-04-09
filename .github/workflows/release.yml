@@ -46,6 +46,23 @@ jobs:
           INPUT_TAG_NAME: ${{ inputs.tag_name }}
           INPUT_RELEASE_SHA: ${{ inputs.release_sha }}
         run: |
+          normalize_version() {
+            local value="$1"
+            value="${value#v}"
+
+            # Legacy shorthand like 0.1.2c or 0.1.2.d is treated as rc0.
+            if [[ "$value" =~ ^([0-9]+\.[0-9]+\.[0-9]+)([cC]|\.[0-9A-Za-z]).*$ ]]; then
+              value="${BASH_REMATCH[1]}rc0"
+            fi
+
+            # Expand bare prerelease suffixes to PEP 440 form: a -> a0, b -> b0, rc -> rc0.
+            if [[ "$value" =~ ^([0-9]+\.[0-9]+\.[0-9]+)(a|b|rc)$ ]]; then
+              value="${BASH_REMATCH[1]}${BASH_REMATCH[2]}0"
+            fi
+
+            echo "$value"
+          }
+
           VERSION_PATTERN='^[0-9]+\.[0-9]+\.[0-9]+([-.]?[0-9A-Za-z][0-9A-Za-z.-]*)?$'
           TAG_PATTERN='^v[0-9]+\.[0-9]+\.[0-9]+([-.]?[0-9A-Za-z][0-9A-Za-z.-]*)?$'
 
@@ -75,7 +92,7 @@ jobs:
 
           # Normalize shorthand prerelease tags like v0.1.3a -> v0.1.3a0 for PEP 440 consistency.
           RAW_VERSION="${RELEASE_TAG#v}"
-          NORMALIZED_VERSION=$(python -c "import re,sys; value=sys.argv[1].strip(); value=value[1:] if value.lower().startswith('v') else value; value=re.sub(r'^(\d+\.\d+\.\d+)[c.](\w).*$', r'\1rc0', value, flags=re.IGNORECASE); value=re.sub(r'^(\d+\.\d+\.\d+)(a|b|rc)$', r'\1\20', value, flags=re.IGNORECASE); print(value)" "${RAW_VERSION}")
+          NORMALIZED_VERSION=$(normalize_version "${RAW_VERSION}")
           RELEASE_TAG="v${NORMALIZED_VERSION}"
 
           if ! [[ "${RELEASE_TAG}" =~ ${TAG_PATTERN} ]]; then

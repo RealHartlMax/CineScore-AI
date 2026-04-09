@@ -24,10 +24,27 @@ jobs:
         env:
           COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
+          normalize_version() {
+            local value="$1"
+            value="${value#v}"
+
+            # Legacy shorthand like 0.1.2c or 0.1.2.d is treated as rc0.
+            if [[ "$value" =~ ^([0-9]+\.[0-9]+\.[0-9]+)([cC]|\.[0-9A-Za-z]).*$ ]]; then
+              value="${BASH_REMATCH[1]}rc0"
+            fi
+
+            # Expand bare prerelease suffixes to PEP 440 form: a -> a0, b -> b0, rc -> rc0.
+            if [[ "$value" =~ ^([0-9]+\.[0-9]+\.[0-9]+)(a|b|rc)$ ]]; then
+              value="${BASH_REMATCH[1]}${BASH_REMATCH[2]}0"
+            fi
+
+            echo "$value"
+          }
+
           printf '%s\n' "$COMMIT_MESSAGE"
           if [[ "$COMMIT_MESSAGE" =~ (^|[[:space:]])(release|version|hotfix)[[:space:]]*:[[:space:]]*v?([0-9]+\.[0-9]+\.[0-9]+([-.]?[0-9A-Za-z][0-9A-Za-z.-]*)?)($|[[:space:]]) ]]; then
             VERSION_RAW="${BASH_REMATCH[3]}"
-            VERSION=$(python -c "import re,sys; value=sys.argv[1].strip(); value=value[1:] if value.lower().startswith('v') else value; value=re.sub(r'^(\d+\.\d+\.\d+)[c.](\w).*$', r'\1rc0', value, flags=re.IGNORECASE); value=re.sub(r'^(\d+\.\d+\.\d+)(a|b|rc)$', r'\1\20', value, flags=re.IGNORECASE); print(value)" "${VERSION_RAW}")
+            VERSION=$(normalize_version "${VERSION_RAW}")
             MARKER_KIND="${BASH_REMATCH[2]}"
             echo "reason=marker:${MARKER_KIND}" >> "$GITHUB_OUTPUT"
             echo "should_release=true" >> "$GITHUB_OUTPUT"
