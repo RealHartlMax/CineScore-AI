@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cinescore-ai"
-version = "0.1.1"
+version = "0.1.2"
 description = "DaVinci Resolve AI audio composer settings UI and credential manager."
 readme = "README.md"
 requires-python = ">=3.10,<3.12"
@@ -17,6 +17,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
+    "pytest-timeout>=2.3",
 ]
 
 [tool.setuptools]
@@ -24,3 +25,7 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+timeout = 30
+testpaths = ["tests"]

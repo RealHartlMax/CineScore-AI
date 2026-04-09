@@ -1,6 +1,42 @@
 {
   "releases": [
     {
+      "version": "0.1.2",
+      "release_date": "2026-04-09",
+      "stable": true,
+      "download_urls": {
+        "windows_exe": "https://github.com/RealHartlMax/CineScore-AI/releases/download/v0.1.2/CineScore-AI-Setup.exe",
+        "runtime_zip": "https://github.com/RealHartlMax/CineScore-AI/releases/download/v0.1.2/CineScore-AI-v0.1.2-runtime.zip",
+        "runtime_tar_gz": "https://github.com/RealHartlMax/CineScore-AI/releases/download/v0.1.2/CineScore-AI-v0.1.2-runtime.tar.gz",
+        "source": "https://github.com/RealHartlMax/CineScore-AI/archive/refs/tags/v0.1.2.zip"
+      },
+      "checksums": {
+        "windows_exe": "SHA256_HASH_HERE",
+        "runtime_zip": "SHA256_HASH_HERE",
+        "runtime_tar_gz": "SHA256_HASH_HERE"
+      },
+      "highlights": {
+        "en": [
+          "Release workflow tag resolution fixed (input priority, semver normalization, validation)",
+          "pytest-timeout added to prevent CI hangs on macOS/Windows Qt tests",
+          "QT_MAC_WANTS_LAYER=1 stabilizes headless Qt on macOS CI runners",
+          "test_resolve.py tuple-return fix for _ensure_media_pool_music_folder"
+        ],
+        "de": [
+          "Release-Workflow Tag-Aufloesung behoben (Input-Prioritaet, Semver-Normalisierung, Validierung)",
+          "pytest-timeout hinzugefuegt verhindert CI-Haenger bei macOS/Windows Qt-Tests",
+          "QT_MAC_WANTS_LAYER=1 stabilisiert Headless-Qt auf macOS-CI-Runnern",
+          "test_resolve.py Tupel-Rueckgabe-Fix fuer _ensure_media_pool_music_folder"
+        ]
+      },
+      "release_notes_en": "CI/CD stability hotfix - See CHANGELOG.md for full details.",
+      "release_notes_de": "CI/CD-Stabilitaets-Hotfix - Siehe CHANGELOG.md fuer vollstaendige Details.",
+      "min_python_version": "3.10",
+      "platforms": ["windows", "macos", "linux"],
+      "breaking_changes": false,
+      "deprecations": []
+    },
+    {
       "version": "0.1.1",
       "release_date": "2026-04-09",
       "stable": true,
@@ -77,7 +113,7 @@
       "deprecations": []
     }
   ],
-  "latest": "0.1.1",
+  "latest": "0.1.2",
   "metadata": {
     "project_name": "CineScore-AI",
     "project_url": "https://github.com/RealHartlMax/CineScore-AI",

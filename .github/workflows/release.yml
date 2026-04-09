@@ -142,6 +142,9 @@ jobs:
       - context
       - validate
     runs-on: ubuntu-latest
+    outputs:
+      runtime_zip_sha256: ${{ steps.checksums.outputs.runtime_zip_sha256 }}
+      runtime_tar_gz_sha256: ${{ steps.checksums.outputs.runtime_tar_gz_sha256 }}
 
     steps:
       - name: Checkout repository
@@ -201,10 +204,17 @@ jobs:
           tar -czf "CineScore-AI-runtime-v${VERSION}.tar.gz" "CineScore-AI-runtime"
 
       - name: Create checksums
+        id: checksums
         shell: bash
         run: |
           VERSION="${{ needs.context.outputs.release_version }}"
           cd release
+          ZIP_FILE="CineScore-AI-runtime-v${VERSION}.zip"
+          TAR_GZ_FILE="CineScore-AI-runtime-v${VERSION}.tar.gz"
+          ZIP_SHA=$(sha256sum "${ZIP_FILE}" | awk '{print $1}')
+          TAR_GZ_SHA=$(sha256sum "${TAR_GZ_FILE}" | awk '{print $1}')
+          echo "runtime_zip_sha256=${ZIP_SHA}" >> "$GITHUB_OUTPUT"
+          echo "runtime_tar_gz_sha256=${TAR_GZ_SHA}" >> "$GITHUB_OUTPUT"
           sha256sum "CineScore-AI-runtime-v${VERSION}.zip" "CineScore-AI-runtime-v${VERSION}.tar.gz" > "CineScore-AI-v${VERSION}-SHA256SUMS.txt"
 
       - name: Publish GitHub release
@@ -219,3 +229,156 @@ jobs:
             release/*SHA256SUMS.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  update-versions-json:
+    name: Update versions.json checksums
+    needs:
+      - context
+      - release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout default branch
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.repository.default_branch || 'main' }}
+
+      - name: Update checksums for current release
+        shell: bash
+        env:
+          RELEASE_VERSION: ${{ needs.context.outputs.release_version }}
+          RELEASE_TAG: ${{ needs.context.outputs.release_tag }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUNTIME_ZIP_SHA256: ${{ needs.release.outputs.runtime_zip_sha256 }}
+          RUNTIME_TAR_GZ_SHA256: ${{ needs.release.outputs.runtime_tar_gz_sha256 }}
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          import time
+          import urllib.error
+          import urllib.request
+          from pathlib import Path
+
+          release_version = "${{ env.RELEASE_VERSION }}"
+          release_tag = "${{ env.RELEASE_TAG }}"
+          github_repository = "${{ env.GITHUB_REPOSITORY }}"
+          github_token = "${{ env.GITHUB_TOKEN }}"
+          runtime_zip_sha256 = "${{ env.RUNTIME_ZIP_SHA256 }}"
+          runtime_tar_gz_sha256 = "${{ env.RUNTIME_TAR_GZ_SHA256 }}"
+
+          if not runtime_zip_sha256 or not runtime_tar_gz_sha256:
+              raise SystemExit("Missing checksum outputs from release job.")
+
+          if not github_token:
+              raise SystemExit("Missing GITHUB_TOKEN for release asset lookup.")
+
+          release_api_url = f"https://api.github.com/repos/{github_repository}/releases/tags/{release_tag}"
+
+          def _api_headers(accept: str) -> dict[str, str]:
+              return {
+                  "Authorization": f"Bearer {github_token}",
+                  "Accept": accept,
+                  "X-GitHub-Api-Version": "2022-11-28",
+              }
+
+          def _fetch_release_payload() -> dict | None:
+              request = urllib.request.Request(
+                  release_api_url,
+                  headers=_api_headers("application/vnd.github+json"),
+              )
+              try:
+                  with urllib.request.urlopen(request) as response:
+                      return json.loads(response.read().decode("utf-8"))
+              except urllib.error.HTTPError as exc:
+                  if exc.code == 404:
+                      return None
+                  raise
+
+          def _find_exe_asset(payload: dict | None) -> dict | None:
+              if not payload:
+                  return None
+              return next(
+                  (
+                      asset
+                      for asset in payload.get("assets", [])
+                      if asset.get("name") == "CineScore-AI-Setup.exe"
+                  ),
+                  None,
+              )
+
+          print("Attempt 1: Checking release for CineScore-AI-Setup.exe ...")
+          release_payload = _fetch_release_payload()
+          exe_asset = _find_exe_asset(release_payload)
+
+          if exe_asset is None:
+              max_retries = 6
+              retry_interval_seconds = 30
+              print(
+                  "Attempt 1 failed: installer asset not visible yet. "
+                  f"Waiting with polling (Attempt 2) for up to {max_retries * retry_interval_seconds} seconds..."
+              )
+
+              for attempt in range(1, max_retries + 1):
+                  time.sleep(retry_interval_seconds)
+                  release_payload = _fetch_release_payload()
+                  exe_asset = _find_exe_asset(release_payload)
+                  if exe_asset is not None:
+                      print(f"Attempt 2 success on poll #{attempt}: installer asset is now available.")
+                      break
+
+          windows_exe_sha256 = None
+          if exe_asset is not None:
+              download_url = exe_asset.get("browser_download_url")
+              if not download_url:
+                  raise SystemExit("Installer asset has no download URL.")
+
+              print("Attempt 1 (final step): Downloading installer and computing checksum...")
+              asset_request = urllib.request.Request(
+                  download_url,
+                  headers=_api_headers("application/octet-stream"),
+              )
+              with urllib.request.urlopen(asset_request) as response:
+                  exe_bytes = response.read()
+              windows_exe_sha256 = hashlib.sha256(exe_bytes).hexdigest()
+              print("Computed windows_exe checksum successfully.")
+          else:
+              print(
+                  "Warning: Could not find 'CineScore-AI-Setup.exe' after initial check and polling. "
+                  "Keeping existing checksums.windows_exe value in versions.json."
+              )
+
+          versions_path = Path("versions.json")
+          data = json.loads(versions_path.read_text(encoding="utf-8"))
+
+          releases = data.get("releases", [])
+          target = next((item for item in releases if item.get("version") == release_version), None)
+          if target is None:
+              raise SystemExit(f"Release version {release_version} not found in versions.json")
+
+          checksums = target.setdefault("checksums", {})
+            if windows_exe_sha256:
+              checksums["windows_exe"] = windows_exe_sha256
+          checksums["runtime_zip"] = runtime_zip_sha256
+          checksums["runtime_tar_gz"] = runtime_tar_gz_sha256
+
+          versions_path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+          PY
+
+      - name: Commit and push versions.json update
+        shell: bash
+        env:
+          RELEASE_VERSION: ${{ needs.context.outputs.release_version }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch || 'main' }}
+        run: |
+          if git diff --quiet -- versions.json; then
+            echo "No versions.json changes to commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add versions.json
+          git commit -m "chore(release): update checksums for v${RELEASE_VERSION}"
+          git push origin "HEAD:${DEFAULT_BRANCH}"

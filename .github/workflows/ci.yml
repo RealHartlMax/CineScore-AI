@@ -43,4 +43,5 @@ jobs:
       - name: Run tests
         env:
           QT_QPA_PLATFORM: offscreen
+          QT_MAC_WANTS_LAYER: "1"
         run: python -m pytest

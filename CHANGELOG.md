@@ -4,7 +4,36 @@ All notable changes to CineScore-AI will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
----
+
+## [0.1.2] - 2026-04-09
+
+### Hotfix Release
+
+CI/CD stability and test infrastructure hotfix. No application-level behavior changes.
+
+### Fixed
+
+- **Release workflow tag resolution**
+  - Release workflow now correctly prioritizes explicit `tag_name` input over `GITHUB_REF_NAME` (which previously resolved to branch name `main` in `workflow_call` context)
+  - Added automatic semver normalization: bare `0.x.y` inputs are normalized to `v0.x.y`
+  - Added `TAG_PATTERN` validation that rejects non-semver tags early with a clear error message
+  - Added `git ls-remote` inference fallback when an invalid tag is detected but a valid SHA is available
+  - Fixed `pipefail` exit on `git ls-remote` pipeline by appending `|| true`
+
+- **Test suite — `_ensure_media_pool_music_folder` return type**
+  - Two tests in `test_resolve.py` expected a bare `folder` object but the function returns a `(folder, name)` tuple
+  - Both tests now correctly unpack the tuple and assert both the folder reference and the folder name string
+
+### Added
+
+- **CI: `pytest-timeout` guard for Qt tests**
+  - Added `pytest-timeout>=2.3` to dev dependencies
+  - Configured a 30-second per-test timeout via `[tool.pytest.ini_options]` in `pyproject.toml`
+  - Prevents Qt headless tests from hanging indefinitely on macOS/Windows CI runners
+
+- **CI: macOS Qt headless stability (`QT_MAC_WANTS_LAYER`)**
+  - Added `QT_MAC_WANTS_LAYER=1` environment variable to the CI test step
+  - Prevents the Cocoa Metal layer initialization hang on macOS Ventura+ headless runners
 
 ## [0.1.1] - 2026-04-09
 
@@ -126,7 +155,36 @@ Alle bemerkenswerten Änderungen an CineScore-AI werden in dieser Datei dokument
 
 Format basierend auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/)
 
----
+
+## [0.1.2] - 2026-04-09
+
+### Hotfix-Release
+
+CI/CD-Stabilitaets- und Testinfrastruktur-Hotfix. Keine Aenderungen am Anwendungsverhalten.
+
+### Behoben
+
+- **Release-Workflow Tag-Aufloesung**
+  - Release-Workflow priorisiert nun korrekt den expliziten `tag_name`-Input vor `GITHUB_REF_NAME` (der im `workflow_call`-Kontext zuvor den Branch-Namen `main` lieferte)
+  - Automatische Semver-Normalisierung: einfache Eingaben wie `0.x.y` werden zu `v0.x.y` normalisiert
+  - `TAG_PATTERN`-Validierung ergaenzt, die Nicht-Semver-Tags fruehzeitig mit klarer Fehlermeldung ablehnt
+  - `git ls-remote`-Inference-Fallback hinzugefuegt fuer den Fall, dass ein ungueltiger Tag erkannt wird, aber ein gueltiger SHA vorliegt
+  - `pipefail`-Abbruch in der `git ls-remote`-Pipeline durch `|| true` behoben
+
+- **Testsuite — Rueckgabetyp `_ensure_media_pool_music_folder`**
+  - Zwei Tests in `test_resolve.py` erwarteten ein reines `folder`-Objekt, die Funktion gibt jedoch ein `(folder, name)`-Tupel zurueck
+  - Beide Tests entpacken das Tupel nun korrekt und pruefen sowohl die Ordnerreferenz als auch den Ordnernamen
+
+### Hinzugefuegt
+
+- **CI: `pytest-timeout`-Absicherung fuer Qt-Tests**
+  - `pytest-timeout>=2.3` zu den Dev-Abhaengigkeiten hinzugefuegt
+  - 30-Sekunden-Timeout pro Test ueber `[tool.pytest.ini_options]` in `pyproject.toml` konfiguriert
+  - Verhindert, dass Qt-Headless-Tests auf macOS/Windows-CI-Runnern dauerhaft haengen bleiben
+
+- **CI: macOS Qt-Headless-Stabilitaet (`QT_MAC_WANTS_LAYER`)**
+  - Umgebungsvariable `QT_MAC_WANTS_LAYER=1` zum CI-Testschritt hinzugefuegt
+  - Verhindert den Cocoa-Metal-Layer-Initialisierungs-Haenger auf macOS Ventura+ Headless-Runnern
 
 ## [0.1.1] - 2026-04-09
 
