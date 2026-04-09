@@ -1,0 +1,112 @@
+name: Auto Tag Release
+
+on:
+  push:
+
+permissions:
+  contents: write
+
+jobs:
+  detect:
+    name: Detect release marker
+    if: github.ref_type == 'branch' && github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.parse.outputs.should_release }}
+      tag_name: ${{ steps.parse.outputs.tag_name }}
+      version: ${{ steps.parse.outputs.version }}
+
+    steps:
+      - name: Parse commit message
+        id: parse
+        shell: bash
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          printf '%s\n' "$COMMIT_MESSAGE"
+          if [[ "$COMMIT_MESSAGE" =~ (^|[[:space:]])(release|version)[[:space:]]*:[[:space:]]*v?([0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?)($|[[:space:]]) ]]; then
+            VERSION="${BASH_REMATCH[3]}"
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+            echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+            echo "tag_name=v${VERSION}" >> "$GITHUB_OUTPUT"
+            echo "Detected release marker for version ${VERSION}."
+          else
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+            echo "No release marker found in the head commit message."
+          fi
+
+  validate-version:
+    name: Validate requested version
+    needs: detect
+    if: needs.detect.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Validate commit version matches application version
+        shell: bash
+        run: |
+          REQUESTED_VERSION="${{ needs.detect.outputs.version }}"
+          APP_VERSION=$(python -c "import sys; sys.path.insert(0, 'src'); from cinescore_ai.version import get_app_version; print(get_app_version())")
+          echo "Requested version: $REQUESTED_VERSION"
+          echo "Application version: $APP_VERSION"
+          if [ "$REQUESTED_VERSION" != "$APP_VERSION" ]; then
+            echo "Commit message version does not match cinescore_ai.version."
+            exit 1
+          fi
+
+  create-tag:
+    name: Create git tag
+    needs:
+      - detect
+      - validate-version
+    if: needs.detect.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      tag_created: ${{ steps.tag.outputs.tag_created }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create tag when missing
+        id: tag
+        shell: bash
+        env:
+          TAG_NAME: ${{ needs.detect.outputs.tag_name }}
+        run: |
+          git fetch --tags origin
+          if git ls-remote --tags origin "refs/tags/${TAG_NAME}" | grep -q "${TAG_NAME}$"; then
+            echo "Tag ${TAG_NAME} already exists on origin."
+            echo "tag_created=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "${TAG_NAME}" "${GITHUB_SHA}" -m "Release ${TAG_NAME}"
+          git push origin "refs/tags/${TAG_NAME}"
+          echo "tag_created=true" >> "$GITHUB_OUTPUT"
+
+  release:
+    name: Publish release
+    needs:
+      - detect
+      - create-tag
+    if: needs.detect.outputs.should_release == 'true' && needs.create-tag.outputs.tag_created == 'true'
+    uses: ./.github/workflows/release.yml
+    with:
+      tag_name: ${{ needs.detect.outputs.tag_name }}
+      release_sha: ${{ github.sha }}
+    secrets: inherit

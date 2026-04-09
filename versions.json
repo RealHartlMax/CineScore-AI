@@ -1,0 +1,49 @@
+{
+  "releases": [
+    {
+      "version": "0.1.0",
+      "release_date": "2026-04-09",
+      "stable": true,
+      "download_urls": {
+        "windows_exe": "https://github.com/RealHartlMax/CineScore-AI/releases/download/v0.1.0/CineScore-AI-Setup.exe",
+        "runtime_zip": "https://github.com/RealHartlMax/CineScore-AI/releases/download/v0.1.0/CineScore-AI-v0.1.0-runtime.zip",
+        "runtime_tar_gz": "https://github.com/RealHartlMax/CineScore-AI/releases/download/v0.1.0/CineScore-AI-v0.1.0-runtime.tar.gz",
+        "source": "https://github.com/RealHartlMax/CineScore-AI/archive/refs/tags/v0.1.0.zip"
+      },
+      "checksums": {
+        "windows_exe": "SHA256_HASH_HERE",
+        "runtime_zip": "SHA256_HASH_HERE",
+        "runtime_tar_gz": "SHA256_HASH_HERE"
+      },
+      "highlights": {
+        "en": [
+          "Initial stable release with DaVinci Resolve integration",
+          "Google Gemini AI video analysis and music generation",
+          "Automated marker-driven audio placement",
+          "Bilingual UI (English/German) with 55+ tests",
+          "Multi-platform support (Windows, macOS, Linux)"
+        ],
+        "de": [
+          "Erstes stabiles Release mit DaVinci Resolve-Integration",
+          "Google Gemini KI-Video-Analyse und Musikgenerierung",
+          "Automatisierte Marker-gesteuerte Audio-Platzierung",
+          "Zweisprachige UI (Englisch/Deutsch) mit 55+ Tests",
+          "Plattformuebergreifende Unterstuetzung (Windows, macOS, Linux)"
+        ]
+      },
+      "release_notes_en": "First stable release - See CHANGELOG.md for full details.",
+      "release_notes_de": "Erstes stabiles Release - Siehe CHANGELOG.md fuer vollstaendige Details.",
+      "min_python_version": "3.10",
+      "platforms": ["windows", "macos", "linux"],
+      "breaking_changes": false,
+      "deprecations": []
+    }
+  ],
+  "latest": "0.1.0",
+  "metadata": {
+    "project_name": "CineScore-AI",
+    "project_url": "https://github.com/RealHartlMax/CineScore-AI",
+    "update_check_interval_days": 7,
+    "auto_update_enabled_platforms": ["windows"]
+  }
+}

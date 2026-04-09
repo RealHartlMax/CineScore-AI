@@ -1,0 +1,29 @@
+name: "Question"
+description: Ask a usage, setup, or workflow question about CineScore AI
+title: "[QUESTION]: "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for setup, usage, integration, or marker-syntax questions.
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, DaVinci Resolve version, and whether you run CineScore AI from source or from an installed runtime.
+      placeholder: "Windows 11, DaVinci Resolve 19, installed Resolve runtime"
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: What are you trying to achieve, and what have you already tried?

@@ -1,0 +1,59 @@
+name: "Feature request"
+description: Suggest a new feature or workflow improvement for CineScore AI
+title: "[FEATURE]: "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the workflow problem first, then the improvement you want.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Workflow problem / use case
+      description: What is hard, slow, or missing today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: What should CineScore AI do differently?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Feature Area
+      options:
+        - Resolve integration
+        - Gemini video analysis
+        - Gemini music generation
+        - Audio provider workflow
+        - UI / UX
+        - Performance
+        - Installer / updater
+        - Documentation
+        - Localization
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: Example markers / prompts / timeline scenario
+      description: If the request is tied to marker syntax, prompts, or Resolve timeline behavior, show a concrete example.
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context

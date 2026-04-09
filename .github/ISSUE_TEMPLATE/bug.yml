@@ -1,0 +1,102 @@
+name: "Bug report"
+description: Report a CineScore AI bug in the Resolve, Gemini, audio, or installer workflow
+title: "[BUG]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug.
+        Please include enough detail to reproduce it in the CineScore AI workflow.
+
+  - type: input
+    id: app_version
+    attributes:
+      label: CineScore AI version
+      description: Use the version shown in the app header or the GitHub release tag.
+      placeholder: "0.1.0"
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Python version if relevant, DaVinci Resolve version, and how CineScore AI was started.
+      placeholder: "Windows 11, Python 3.10.11, DaVinci Resolve 19, started from Resolve Scripts menu"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      options:
+        - Resolve integration
+        - Gemini video analysis
+        - Gemini music generation
+        - Audio provider workflow
+        - UI / settings
+        - Runtime installer / updater
+        - Localization
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the bug and the visible failure.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      placeholder: |
+        1. Open DaVinci Resolve and load timeline X
+        2. Run CineScore AI from the Scripts menu
+        3. Generate Gemini music with markers Y
+        4. Observe the failure
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: marker_context
+    attributes:
+      label: Marker / prompt context
+      description: Paste relevant marker names, notes, prompt fragments, or cue instructions if they matter.
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / error output
+      description: Paste the status output, traceback, HTTP error, or Resolve import message.
+      render: shell
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots / recordings
+      description: Drag screenshots or short recordings here if they help.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I am using the latest version
+          required: true
+        - label: I searched for existing issues
+          required: true
+        - label: I removed secrets or API keys from logs and screenshots
+          required: true
