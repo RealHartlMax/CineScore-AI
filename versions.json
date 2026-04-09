@@ -11,28 +11,30 @@
         "source": "https://github.com/RealHartlMax/CineScore-AI/archive/refs/tags/v0.1.3a0.zip"
       },
       "checksums": {
-        "windows_exe": "SHA256_HASH_HERE",
-        "runtime_zip": "SHA256_HASH_HERE",
-        "runtime_tar_gz": "SHA256_HASH_HERE"
+        "windows_exe": "7ee3b558fe8e0a038ef1aab9795ff3cbc4806ae2cf673127576076b106dda591",
+        "runtime_zip": "02fcf89d29563a891b3492d051ea889981c8695a2c22d21fe41d492da2072f35",
+        "runtime_tar_gz": "9d7674c89c9f9ca8e05cd222e3c57628e67c4f0614a3bbcc54da02b4177c6e9b"
       },
       "highlights": {
         "en": [
-          "Marker directive parsing and cue prompt metadata paths were optimized for lower CPU overhead",
-          "Version comparison in update checks now uses cached sort keys and compiled regex patterns",
-          "Release workflow changelog highlight extraction is now robust when blocks or bullets are missing",
-          "Release metadata was aligned for the 0.1.3a hotfix"
+          "Performance optimization in directive and cue processing",
+          "Update version comparison performance",
+          "Release workflow robustness"
         ],
         "de": [
-          "Marker-Directive-Parsing und Cue-Prompt-Metadaten wurden fuer geringere CPU-Last optimiert",
-          "Versionsvergleich in Update-Checks nutzt jetzt gecachte Sortier-Keys und vorkompilierte Regex-Muster",
-          "Die Changelog-Highlight-Extraktion im Release-Workflow ist jetzt robust bei fehlenden Bloecken oder Bullet-Points",
-          "Release-Metadaten wurden fuer den Hotfix 0.1.3a ausgerichtet"
+          "Performance-Optimierung in Directive- und Cue-Verarbeitung",
+          "Performance beim Update-Versionsvergleich",
+          "Release-Workflow-Robustheit"
         ]
       },
-      "release_notes_en": "Hotfix release focused on parser/prompt performance improvements and more robust release changelog extraction. See CHANGELOG.md for full details.",
-      "release_notes_de": "Hotfix-Release mit Fokus auf Parser/Prompt-Performance und robustere Changelog-Extraktion im Release-Workflow. Siehe CHANGELOG.md fuer vollstaendige Details.",
+      "release_notes_en": "Targeted hotfix (`v0.1.3a`, normalized internally to `0.1.3a0`) focused on runtime performance and release pipeline resilience. See CHANGELOG.md for full details.",
+      "release_notes_de": "Gezielter Hotfix (`v0.1.3a`, intern auf `0.1.3a0` normalisiert) mit Fokus auf Laufzeit-Performance und robusteren Release-Ablauf. Siehe CHANGELOG.md fuer vollstaendige Details.",
       "min_python_version": "3.10",
-      "platforms": ["windows", "macos", "linux"],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "breaking_changes": false,
       "deprecations": []
     },
