@@ -1,14 +1,14 @@
 {
   "releases": [
     {
-      "version": "0.1.2d",
+      "version": "0.1.2rc1",
       "release_date": "2026-04-09",
       "stable": false,
       "download_urls": {
-        "windows_exe": "https://github.com/RealHartlMax/CineScore-AI/releases/download/v0.1.2d/CineScore-AI-Setup.exe",
-        "runtime_zip": "https://github.com/RealHartlMax/CineScore-AI/releases/download/v0.1.2d/CineScore-AI-v0.1.2d-runtime-windows.zip",
-        "runtime_tar_gz": "https://github.com/RealHartlMax/CineScore-AI/releases/download/v0.1.2d/CineScore-AI-v0.1.2d-runtime-macos-linux.tar.gz",
-        "source": "https://github.com/RealHartlMax/CineScore-AI/archive/refs/tags/v0.1.2d.zip"
+        "windows_exe": "https://github.com/RealHartlMax/CineScore-AI/releases/download/v0.1.2rc1/CineScore-AI-Setup.exe",
+        "runtime_zip": "https://github.com/RealHartlMax/CineScore-AI/releases/download/v0.1.2rc1/CineScore-AI-v0.1.2rc1-runtime-windows.zip",
+        "runtime_tar_gz": "https://github.com/RealHartlMax/CineScore-AI/releases/download/v0.1.2rc1/CineScore-AI-v0.1.2rc1-runtime-macos-linux.tar.gz",
+        "source": "https://github.com/RealHartlMax/CineScore-AI/archive/refs/tags/v0.1.2rc1.zip"
       },
       "checksums": {
         "windows_exe": "SHA256_HASH_HERE",
@@ -219,7 +219,7 @@
       "deprecations": []
     }
   ],
-  "latest": "0.1.2d",
+  "latest": "0.1.2rc1",
   "metadata": {
     "project_name": "CineScore-AI",
     "project_url": "https://github.com/RealHartlMax/CineScore-AI",

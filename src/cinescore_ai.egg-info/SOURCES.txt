@@ -14,8 +14,11 @@ src/cinescore_ai/marker_directives.py
 src/cinescore_ai/paths.py
 src/cinescore_ai/providers.py
 src/cinescore_ai/resolve.py
+src/cinescore_ai/resolve_install.py
 src/cinescore_ai/secrets.py
 src/cinescore_ai/services.py
+src/cinescore_ai/update_service.py
+src/cinescore_ai/version.py
 src/cinescore_ai/workflow.py
 src/cinescore_ai.egg-info/PKG-INFO
 src/cinescore_ai.egg-info/SOURCES.txt
@@ -33,7 +36,9 @@ tests/test_localization.py
 tests/test_marker_directives.py
 tests/test_providers.py
 tests/test_resolve.py
+tests/test_resolve_install.py
 tests/test_secrets.py
 tests/test_services.py
 tests/test_ui_smoke.py
+tests/test_update_service.py
 tests/test_workflow.py

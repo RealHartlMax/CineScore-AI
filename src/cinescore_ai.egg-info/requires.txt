@@ -4,3 +4,4 @@ keyring>=25.0
 
 [dev]
 pytest>=8.0
+pytest-timeout>=2.3
