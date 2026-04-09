@@ -8,6 +8,29 @@ from cinescore_ai.resolve import ResolveMarker
 
 _POSITIVE_INT_RE = re.compile(r"\d+")
 _MUSIC_TRACK_NAME_RE = re.compile(r"^\s*music\s*track\s*(\d+)\s*:\s*(.+?)\s*$", re.IGNORECASE)
+_STOPHARD_TOKENS = frozenset({"[stophard]", "[stop_hard]", "[stop-hard]"})
+_BOOL_TRUE_TOKENS = frozenset({"1", "true", "yes", "y", "on"})
+_BOOL_FALSE_TOKENS = frozenset({"0", "false", "no", "n", "off"})
+_SECTION_KEYS = frozenset({"section", "structure", "part"})
+_TRACK_KEYS = frozenset({"track", "music_track", "slot", "lane"})
+_THEME_KEYS = frozenset({"theme", "title"})
+_VOCALS_KEYS = frozenset({"lyrics", "vocal", "vocals"})
+_FADE_KEYS = frozenset({"fade", "crossfade"})
+_LENGTH_KEYS = frozenset({"length", "duration"})
+_GENRE_KEYS = frozenset({"genre", "genres"})
+_INSTRUMENT_KEYS = frozenset({"instrument", "instruments"})
+_BPM_KEYS = frozenset({"bpm", "tempo"})
+_KEY_SCALE_KEYS = frozenset({"key", "scale", "tonart"})
+_MOOD_KEYS = frozenset({"mood", "atmosphere", "stimmung"})
+_STRUCTURE_KEYS = frozenset({"song_structure", "arrangement", "form"})
+_INPUT_KEYS = frozenset({"input", "brief", "prompt"})
+_STOP_KEYS = frozenset({"stop", "end", "cut"})
+_STOP_MODE_KEYS = frozenset({"stop_mode", "stopmode"})
+_STOP_HARD_VALUES = frozenset({"now", "hard", "abrupt", "immediate", "hardcut", "hard-cut"})
+_STOP_NATURAL_VALUES = frozenset({"natural", "soft", "outro", "tail"})
+_STOP_MODE_HARD_VALUES = frozenset({"hard", "abrupt", "immediate"})
+_STOP_MODE_NATURAL_VALUES = frozenset({"natural", "soft", "outro"})
+_KEYWORD_KEYS = frozenset({"keywords", "keyword", "tags", "tag"})
 
 
 @dataclass(slots=True)
@@ -104,21 +127,27 @@ def _apply_directive_token(
     *,
     collect_unparsed_as_style_keyword: bool = True,
 ) -> bool:
-    normalized_token = token.strip().lower()
+    stripped_token = token.strip()
+    normalized_token = stripped_token.lower()
     if normalized_token == "[stop]":
         directive.stop_here = True
         directive.stop_mode = "natural"
         return True
-    if normalized_token in {"[stophard]", "[stop_hard]", "[stop-hard]"}:
+    if normalized_token in _STOPHARD_TOKENS:
         directive.stop_here = True
         directive.stop_mode = "hard"
         return True
 
-    parsed = _parse_directive_line(token)
+    # Fast path for plain text note lines/keywords with no directive separator.
+    if ":" not in stripped_token and "=" not in stripped_token:
+        if stripped_token and collect_unparsed_as_style_keyword:
+            style_keywords.append(stripped_token)
+        return False
+
+    parsed = _parse_directive_line(stripped_token)
     if parsed is None:
-        cleaned = token.strip()
-        if cleaned and collect_unparsed_as_style_keyword:
-            style_keywords.append(cleaned)
+        if stripped_token and collect_unparsed_as_style_keyword:
+            style_keywords.append(stripped_token)
         return False
 
     key, value = parsed
@@ -127,21 +156,21 @@ def _apply_directive_token(
         if bool_value is not None:
             directive.use_image = bool_value
             return True
-    if key in {"section", "structure", "part"} and value:
+    if key in _SECTION_KEYS and value:
         directive.section_label = value.strip()
         return True
-    if key in {"track", "music_track", "slot", "lane"} and value:
+    if key in _TRACK_KEYS and value:
         slot, lane = _parse_track_value(value)
         directive.music_track_slot = slot
         directive.track_lane = lane
         directive.track_display_label = _track_display_label(slot, lane)
         return True
-    if key in {"theme", "title"} and value:
+    if key in _THEME_KEYS and value:
         directive.theme_label = value.strip()
         if not directive.section_label:
             directive.section_label = directive.theme_label
         return True
-    if key in {"lyrics", "vocal", "vocals"} and value:
+    if key in _VOCALS_KEYS and value:
         vocals_mode = _parse_vocals_mode(value)
         if vocals_mode is not None:
             directive.vocals_mode = vocals_mode
@@ -151,44 +180,44 @@ def _apply_directive_token(
         if bool_value is not None:
             directive.vocals_mode = "instrumental" if bool_value else "lyrics"
             return True
-    if key in {"fade", "crossfade"} and value:
+    if key in _FADE_KEYS and value:
         parsed_float = _parse_positive_float(value, allow_zero=True)
         if parsed_float is not None:
             directive.fade_seconds = parsed_float
             return True
-    if key in {"length", "duration"} and value:
+    if key in _LENGTH_KEYS and value:
         parsed_float = _parse_positive_float(value, allow_zero=False)
         if parsed_float is not None:
             directive.length_seconds = parsed_float
             return True
-    if key in {"genre", "genres"} and value:
+    if key in _GENRE_KEYS and value:
         for tag in _split_keywords(value):
             genre_tags.append(tag)
         return True
-    if key in {"instrument", "instruments"} and value:
+    if key in _INSTRUMENT_KEYS and value:
         for item in _split_keywords(value):
             instruments.append(item)
         return True
-    if key in {"bpm", "tempo"} and value:
+    if key in _BPM_KEYS and value:
         parsed_int = _parse_positive_int(value)
         if parsed_int is not None:
             directive.bpm = parsed_int
             return True
-    if key in {"key", "scale", "tonart"} and value:
+    if key in _KEY_SCALE_KEYS and value:
         directive.key_scale = value.strip()
         return True
-    if key in {"mood", "atmosphere", "stimmung"} and value:
+    if key in _MOOD_KEYS and value:
         for item in _split_keywords(value):
             mood_tags.append(item)
         return True
-    if key in {"song_structure", "arrangement", "form"} and value:
+    if key in _STRUCTURE_KEYS and value:
         for item in _split_keywords(value):
             structure_tags.append(item)
         return True
-    if key in {"input", "brief", "prompt"} and value:
+    if key in _INPUT_KEYS and value:
         directive.input_text = value.strip()
         return True
-    if key in {"stop", "end", "cut"}:
+    if key in _STOP_KEYS:
         if not value:
             directive.stop_here = True
             directive.stop_mode = "natural"
@@ -199,31 +228,31 @@ def _apply_directive_token(
             directive.stop_mode = "natural" if bool_value else None
             return True
         normalized_value = value.strip().lower()
-        if normalized_value in {"now", "hard", "abrupt", "immediate", "hardcut", "hard-cut"}:
+        if normalized_value in _STOP_HARD_VALUES:
             directive.stop_here = True
             directive.stop_mode = "hard"
             return True
-        if normalized_value in {"natural", "soft", "outro", "tail"}:
+        if normalized_value in _STOP_NATURAL_VALUES:
             directive.stop_here = True
             directive.stop_mode = "natural"
             return True
-    if key in {"stop_mode", "stopmode"} and value:
+    if key in _STOP_MODE_KEYS and value:
         normalized_value = value.strip().lower()
-        if normalized_value in {"hard", "abrupt", "immediate"}:
+        if normalized_value in _STOP_MODE_HARD_VALUES:
             directive.stop_here = True
             directive.stop_mode = "hard"
             return True
-        if normalized_value in {"natural", "soft", "outro"}:
+        if normalized_value in _STOP_MODE_NATURAL_VALUES:
             directive.stop_here = True
             directive.stop_mode = "natural"
             return True
-    if key in {"keywords", "keyword", "tags", "tag"} and value:
+    if key in _KEYWORD_KEYS and value:
         for keyword in _split_keywords(value):
             style_keywords.append(keyword)
         return True
 
     if collect_unparsed_as_style_keyword:
-        style_keywords.append(token.strip())
+        style_keywords.append(stripped_token)
     return False
 
 
@@ -243,9 +272,9 @@ def _parse_directive_line(line: str) -> tuple[str, str] | None:
 
 def _parse_bool(value: str) -> bool | None:
     normalized = value.strip().lower()
-    if normalized in {"1", "true", "yes", "y", "on"}:
+    if normalized in _BOOL_TRUE_TOKENS:
         return True
-    if normalized in {"0", "false", "no", "n", "off"}:
+    if normalized in _BOOL_FALSE_TOKENS:
         return False
     return None
 
@@ -319,4 +348,4 @@ def _track_display_label(slot: int | None, lane: str | None) -> str | None:
 
 def _split_keywords(value: str) -> tuple[str, ...]:
     parts = value.replace(";", ",").split(",")
-    return tuple(part.strip() for part in parts if part and part.strip())
+    return tuple(stripped for part in parts if (stripped := part.strip()))

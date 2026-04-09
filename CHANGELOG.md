@@ -5,11 +5,11 @@ All notable changes to CineScore-AI will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 
-## [0.1.3] - 2026-04-09
+## [0.1.3a0] - 2026-04-09
 
 ### Hotfix Release
 
-Targeted hotfix focused on runtime performance and release pipeline resilience.
+Targeted hotfix (`v0.1.3a`, normalized internally to `0.1.3a0`) focused on runtime performance and release pipeline resilience.
 
 ### Changed
 
@@ -253,11 +253,11 @@ Alle bemerkenswerten Änderungen an CineScore-AI werden in dieser Datei dokument
 Format basierend auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/)
 
 
-## [0.1.3] - 2026-04-09
+## [0.1.3a0] - 2026-04-09
 
 ### Hotfix-Release
 
-Gezielter Hotfix mit Fokus auf Laufzeit-Performance und robusteren Release-Ablauf.
+Gezielter Hotfix (`v0.1.3a`, intern auf `0.1.3a0` normalisiert) mit Fokus auf Laufzeit-Performance und robusteren Release-Ablauf.
 
 ### Geaendert
 

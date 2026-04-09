@@ -7,7 +7,7 @@ def get_app_version() -> str:
     try:
         return version("cinescore-ai")
     except PackageNotFoundError:
-        return "0.1.3"
+        return "0.1.3a0"
 
 
 __version__ = get_app_version()

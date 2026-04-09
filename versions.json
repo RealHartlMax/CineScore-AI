@@ -1,14 +1,14 @@
 {
   "releases": [
     {
-      "version": "0.1.3",
+      "version": "0.1.3a0",
       "release_date": "2026-04-09",
-      "stable": true,
+      "stable": false,
       "download_urls": {
-        "windows_exe": "https://github.com/RealHartlMax/CineScore-AI/releases/download/v0.1.3/CineScore-AI-Setup.exe",
-        "runtime_zip": "https://github.com/RealHartlMax/CineScore-AI/releases/download/v0.1.3/CineScore-AI-v0.1.3-runtime-windows.zip",
-        "runtime_tar_gz": "https://github.com/RealHartlMax/CineScore-AI/releases/download/v0.1.3/CineScore-AI-v0.1.3-runtime-macos-linux.tar.gz",
-        "source": "https://github.com/RealHartlMax/CineScore-AI/archive/refs/tags/v0.1.3.zip"
+        "windows_exe": "https://github.com/RealHartlMax/CineScore-AI/releases/download/v0.1.3a0/CineScore-AI-Setup.exe",
+        "runtime_zip": "https://github.com/RealHartlMax/CineScore-AI/releases/download/v0.1.3a0/CineScore-AI-v0.1.3a0-runtime-windows.zip",
+        "runtime_tar_gz": "https://github.com/RealHartlMax/CineScore-AI/releases/download/v0.1.3a0/CineScore-AI-v0.1.3a0-runtime-macos-linux.tar.gz",
+        "source": "https://github.com/RealHartlMax/CineScore-AI/archive/refs/tags/v0.1.3a0.zip"
       },
       "checksums": {
         "windows_exe": "SHA256_HASH_HERE",
@@ -20,13 +20,13 @@
           "Marker directive parsing and cue prompt metadata paths were optimized for lower CPU overhead",
           "Version comparison in update checks now uses cached sort keys and compiled regex patterns",
           "Release workflow changelog highlight extraction is now robust when blocks or bullets are missing",
-          "Release metadata was aligned for the 0.1.3 hotfix"
+          "Release metadata was aligned for the 0.1.3a hotfix"
         ],
         "de": [
           "Marker-Directive-Parsing und Cue-Prompt-Metadaten wurden fuer geringere CPU-Last optimiert",
           "Versionsvergleich in Update-Checks nutzt jetzt gecachte Sortier-Keys und vorkompilierte Regex-Muster",
           "Die Changelog-Highlight-Extraktion im Release-Workflow ist jetzt robust bei fehlenden Bloecken oder Bullet-Points",
-          "Release-Metadaten wurden fuer den Hotfix 0.1.3 ausgerichtet"
+          "Release-Metadaten wurden fuer den Hotfix 0.1.3a ausgerichtet"
         ]
       },
       "release_notes_en": "Hotfix release focused on parser/prompt performance improvements and more robust release changelog extraction. See CHANGELOG.md for full details.",
@@ -279,7 +279,7 @@
       "deprecations": []
     }
   ],
-  "latest": "0.1.3",
+  "latest": "0.1.3a0",
   "metadata": {
     "project_name": "CineScore-AI",
     "project_url": "https://github.com/RealHartlMax/CineScore-AI",
