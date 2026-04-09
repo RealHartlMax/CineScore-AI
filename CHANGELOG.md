@@ -5,6 +5,32 @@ All notable changes to CineScore-AI will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 
+## [0.1.2d] - 2026-04-09
+
+### Hotfix Release
+
+Additional hotfix following the `v0.1.2c` release.
+
+### Added
+
+- **Windows installer integration**
+  - Real Windows `.exe` installer now built by CI using Inno Setup
+  - Installer asset included in releases and synchronized to `versions.json`
+  - Direct checksum computation during build (no post-release API polling)
+
+### Changed
+
+- **Release workflow optimization**
+  - Windows installer job runs in parallel after validation
+  - Removed unreliable release asset polling; checksums now passed directly from build jobs
+  - Metadata update now uses direct workflow outputs instead of GitHub API lookups
+
+- **Discord notifications**
+  - Release workflow sends changelog notification after GitHub release
+  - Final release confirmation sent to Discord after versions.json update
+  - Supports both `DISCORD_CHANGELOG_CINESCORE` and `DISCORD_RELEASE_CINESCORE` secrets
+
+
 ## [0.1.2c] - 2026-04-09
 
 ### Hotfix Release
@@ -200,6 +226,32 @@ See [README.md](README.md) for detailed installation instructions.
 Alle bemerkenswerten Änderungen an CineScore-AI werden in dieser Datei dokumentiert.
 
 Format basierend auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/)
+
+
+## [0.1.2d] - 2026-04-09
+
+### Hotfix-Release
+
+Zusaetzlicher Hotfix nach dem `v0.1.2c`-Release.
+
+### Hinzugefuegt
+
+- **Windows-Installer-Integration**
+  - Echter Windows-`.exe`-Installer wird jetzt von CI mit Inno Setup gebaut
+  - Installer-Asset ist in Releases enthalten und wird in `versions.json` synchronisiert
+  - Direkte Checksum-Berechnung waehrend des Build (kein Polling nach der Release-Veroeffentlichung)
+
+### Geaendert
+
+- **Release-Workflow-Optimierung**
+  - Windows-Installer-Job laeuft parallel nach Validierung
+  - Unzuverlaessiges Release-Asset-Polling entfernt; Checksums werden jetzt direkt von Build-Jobs uebergeben
+  - Metadaten-Update nutzt jetzt direkte Workflow-Outputs statt GitHub-API-Lookups
+
+- **Discord-Benachrichtigungen**
+  - Release-Workflow sendet Changelog-Benachrichtigung nach GitHub-Release
+  - Finale Release-Bestaetigung wird nach versions.json-Update zu Discord gesendet
+  - Unterstuetzt `DISCORD_CHANGELOG_CINESCORE` und `DISCORD_RELEASE_CINESCORE` Secrets
 
 
 ## [0.1.2c] - 2026-04-09

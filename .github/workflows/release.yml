@@ -144,11 +144,63 @@ jobs:
           QT_MAC_WANTS_LAYER: "1"
         run: python -m pytest
 
+  windows-installer:
+    name: Build Windows installer
+    needs:
+      - context
+      - validate
+    runs-on: windows-latest
+    outputs:
+      windows_exe_sha256: ${{ steps.checksum.outputs.windows_exe_sha256 }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: ${{ needs.context.outputs.release_ref }}
+
+      - name: Install Inno Setup
+        shell: powershell
+        run: choco install innosetup --no-progress -y
+
+      - name: Build installer
+        shell: powershell
+        run: |
+          $outputDir = Join-Path $PWD "release"
+          New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
+
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" `
+            "/DMyAppVersion=${{ needs.context.outputs.release_version }}" `
+            "/DSourceRoot=$PWD" `
+            "/DOutputDir=$outputDir" `
+            "packaging\windows\CineScoreAI.iss"
+
+      - name: Compute installer checksum
+        id: checksum
+        shell: powershell
+        run: |
+          $installerPath = Join-Path $PWD "release\CineScore-AI-Setup.exe"
+          if (-not (Test-Path $installerPath)) {
+            throw "Installer was not created at $installerPath"
+          }
+
+          $hash = (Get-FileHash -Path $installerPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          [System.IO.File]::AppendAllText($env:GITHUB_OUTPUT, "windows_exe_sha256=$hash`n")
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: release/CineScore-AI-Setup.exe
+          if-no-files-found: error
+
   release:
     name: Create GitHub release
     needs:
       - context
       - validate
+      - windows-installer
     runs-on: ubuntu-latest
     outputs:
       runtime_zip_sha256: ${{ steps.checksums.outputs.runtime_zip_sha256 }}
@@ -219,6 +271,12 @@ jobs:
           zip -r "CineScore-AI-v${VERSION}-runtime-windows.zip" "CineScore-AI-runtime"
           tar -czf "CineScore-AI-v${VERSION}-runtime-macos-linux.tar.gz" "CineScore-AI-runtime"
 
+      - name: Download Windows installer artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-installer
+          path: release
+
       - name: Create checksums
         id: checksums
         shell: bash
@@ -227,11 +285,12 @@ jobs:
           cd release
           ZIP_FILE="CineScore-AI-v${VERSION}-runtime-windows.zip"
           TAR_GZ_FILE="CineScore-AI-v${VERSION}-runtime-macos-linux.tar.gz"
+          EXE_FILE="CineScore-AI-Setup.exe"
           ZIP_SHA=$(sha256sum "${ZIP_FILE}" | awk '{print $1}')
           TAR_GZ_SHA=$(sha256sum "${TAR_GZ_FILE}" | awk '{print $1}')
           echo "runtime_zip_sha256=${ZIP_SHA}" >> "$GITHUB_OUTPUT"
           echo "runtime_tar_gz_sha256=${TAR_GZ_SHA}" >> "$GITHUB_OUTPUT"
-          sha256sum "${ZIP_FILE}" "${TAR_GZ_FILE}" > "CineScore-AI-v${VERSION}-SHA256SUMS.txt"
+          sha256sum "${EXE_FILE}" "${ZIP_FILE}" "${TAR_GZ_FILE}" > "CineScore-AI-v${VERSION}-SHA256SUMS.txt"
 
       - name: Publish GitHub release
         shell: bash
@@ -242,7 +301,7 @@ jobs:
         run: |
           shopt -s nullglob
 
-          ASSET_FILES=(dist/*.tar.gz release/*.zip release/*.tar.gz release/*SHA256SUMS.txt)
+          ASSET_FILES=(dist/*.tar.gz release/*.exe release/*.zip release/*.tar.gz release/*SHA256SUMS.txt)
           if [ ${#ASSET_FILES[@]} -eq 0 ]; then
             echo "No release assets were found to publish."
             exit 1
@@ -262,11 +321,57 @@ jobs:
               --notes-file "$NOTES_FILE"
           fi
 
+  notify-changelog:
+    name: Notify changelog to Discord
+    needs:
+      - context
+      - release
+    runs-on: ubuntu-latest
+    if: success()
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.repository.default_branch || 'main' }}
+
+      - name: Extract changelog highlights
+        id: highlights
+        shell: bash
+        run: |
+          RELEASE_VERSION="${{ needs.context.outputs.release_version }}"
+          CHANGELOG_FILE="CHANGELOG.md"
+          
+          # Extract version block from changelog
+          VERSION_BLOCK=$(sed -n "/^## \[${RELEASE_VERSION}\]/,/^## \[/p" "$CHANGELOG_FILE" | head -n -1)
+          
+          # Extract highlights (first 5 bullet points)
+          HIGHLIGHTS=$(echo "$VERSION_BLOCK" | grep "^- " | head -5 | cut -c3- | tr '\n' '\n' | sed 's/^/• /')
+          
+          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+          echo "highlights<<$EOF" >> $GITHUB_OUTPUT
+          echo "$HIGHLIGHTS" >> $GITHUB_OUTPUT
+          echo "$EOF" >> $GITHUB_OUTPUT
+
+      - name: Send changelog to Discord
+        uses: sarisia/actions-status-discord@v1
+        continue-on-error: true
+        with:
+          webhook: ${{ secrets.DISCORD_CHANGELOG_CINESCORE }}
+          status: success
+          title: "📝 Changelog für CineScore AI ${{ needs.context.outputs.release_tag }}"
+          description: |
+            **Version:** ${{ needs.context.outputs.release_tag }}
+            ${{ steps.highlights.outputs.highlights }}
+            
+            [Zum Release auf GitHub](${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ needs.context.outputs.release_tag }})
+          color: 0x3498db
+
   update-versions-json:
     name: Update versions.json checksums
     needs:
       - context
       - release
+      - windows-installer
     runs-on: ubuntu-latest
 
     steps:
@@ -281,106 +386,24 @@ jobs:
           RELEASE_VERSION: ${{ needs.context.outputs.release_version }}
           RELEASE_TAG: ${{ needs.context.outputs.release_tag }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WINDOWS_EXE_SHA256: ${{ needs.windows-installer.outputs.windows_exe_sha256 }}
           RUNTIME_ZIP_SHA256: ${{ needs.release.outputs.runtime_zip_sha256 }}
           RUNTIME_TAR_GZ_SHA256: ${{ needs.release.outputs.runtime_tar_gz_sha256 }}
         run: |
           python - <<'PY'
-          import hashlib
           import json
           import re
-          import time
-          import urllib.error
-          import urllib.request
           from pathlib import Path
 
           release_version = "${{ env.RELEASE_VERSION }}"
           release_tag = "${{ env.RELEASE_TAG }}"
           github_repository = "${{ env.GITHUB_REPOSITORY }}"
-          github_token = "${{ env.GITHUB_TOKEN }}"
+          windows_exe_sha256 = "${{ env.WINDOWS_EXE_SHA256 }}"
           runtime_zip_sha256 = "${{ env.RUNTIME_ZIP_SHA256 }}"
           runtime_tar_gz_sha256 = "${{ env.RUNTIME_TAR_GZ_SHA256 }}"
 
-          if not runtime_zip_sha256 or not runtime_tar_gz_sha256:
-              raise SystemExit("Missing checksum outputs from release job.")
-
-          if not github_token:
-              raise SystemExit("Missing GITHUB_TOKEN for release asset lookup.")
-
-          release_api_url = f"https://api.github.com/repos/{github_repository}/releases/tags/{release_tag}"
-
-          def _api_headers(accept: str) -> dict[str, str]:
-              return {
-                  "Authorization": f"Bearer {github_token}",
-                  "Accept": accept,
-                  "X-GitHub-Api-Version": "2022-11-28",
-              }
-
-          def _fetch_release_payload() -> dict | None:
-              request = urllib.request.Request(
-                  release_api_url,
-                  headers=_api_headers("application/vnd.github+json"),
-              )
-              try:
-                  with urllib.request.urlopen(request) as response:
-                      return json.loads(response.read().decode("utf-8"))
-              except urllib.error.HTTPError as exc:
-                  if exc.code == 404:
-                      return None
-                  raise
-
-          def _find_exe_asset(payload: dict | None) -> dict | None:
-              if not payload:
-                  return None
-              return next(
-                  (
-                      asset
-                      for asset in payload.get("assets", [])
-                      if asset.get("name") == "CineScore-AI-Setup.exe"
-                  ),
-                  None,
-              )
-
-          print("Attempt 1: Checking release for CineScore-AI-Setup.exe ...")
-          release_payload = _fetch_release_payload()
-          exe_asset = _find_exe_asset(release_payload)
-
-          if exe_asset is None:
-              max_retries = 6
-              retry_interval_seconds = 30
-              print(
-                  "Attempt 1 failed: installer asset not visible yet. "
-                  f"Waiting with polling (Attempt 2) for up to {max_retries * retry_interval_seconds} seconds..."
-              )
-
-              for attempt in range(1, max_retries + 1):
-                  time.sleep(retry_interval_seconds)
-                  release_payload = _fetch_release_payload()
-                  exe_asset = _find_exe_asset(release_payload)
-                  if exe_asset is not None:
-                      print(f"Attempt 2 success on poll #{attempt}: installer asset is now available.")
-                      break
-
-          windows_exe_sha256 = None
-          if exe_asset is not None:
-              download_url = exe_asset.get("browser_download_url")
-              if not download_url:
-                  raise SystemExit("Installer asset has no download URL.")
-
-              print("Attempt 1 (final step): Downloading installer and computing checksum...")
-              asset_request = urllib.request.Request(
-                  download_url,
-                  headers=_api_headers("application/octet-stream"),
-              )
-              with urllib.request.urlopen(asset_request) as response:
-                  exe_bytes = response.read()
-              windows_exe_sha256 = hashlib.sha256(exe_bytes).hexdigest()
-              print("Computed windows_exe checksum successfully.")
-          else:
-              print(
-                  "Warning: Could not find 'CineScore-AI-Setup.exe' after initial check and polling. "
-                  "Keeping existing checksums.windows_exe value in versions.json."
-              )
+          if not windows_exe_sha256 or not runtime_zip_sha256 or not runtime_tar_gz_sha256:
+              raise SystemExit("Missing checksum outputs from workflow jobs.")
 
           versions_path = Path("versions.json")
           changelog_path = Path("CHANGELOG.md")
@@ -485,3 +508,29 @@ jobs:
           git add versions.json
           git commit -m "chore(release): update checksums for v${RELEASE_VERSION}"
           git push origin "HEAD:${DEFAULT_BRANCH}"
+
+  notify-release:
+    name: Notify release to Discord
+    needs:
+      - context
+      - update-versions-json
+    runs-on: ubuntu-latest
+    if: success()
+    steps:
+      - name: Send release notification to Discord
+        uses: sarisia/actions-status-discord@v1
+        continue-on-error: true
+        with:
+          webhook: ${{ secrets.DISCORD_RELEASE_CINESCORE }}
+          status: success
+          title: "🚀 CineScore AI ${{ needs.context.outputs.release_tag }} veröffentlicht"
+          description: |
+            **Neue Version:** ${{ needs.context.outputs.release_tag }}
+            
+            **Assets:**
+            • Windows Installer: `CineScore-AI-Setup.exe`
+            • Windows Runtime: `CineScore-AI-v${{ needs.context.outputs.release_version }}-runtime-windows.zip`
+            • macOS/Linux Runtime: `CineScore-AI-v${{ needs.context.outputs.release_version }}-runtime-macos-linux.tar.gz`
+            
+            [📥 Zum Download auf GitHub](${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ needs.context.outputs.release_tag }})
+          color: 0x00ff00
