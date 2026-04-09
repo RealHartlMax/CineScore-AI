@@ -234,17 +234,33 @@ jobs:
           sha256sum "${ZIP_FILE}" "${TAR_GZ_FILE}" > "CineScore-AI-v${VERSION}-SHA256SUMS.txt"
 
       - name: Publish GitHub release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ needs.context.outputs.release_tag }}
-          body: ${{ steps.notes.outputs.body }}
-          files: |
-            dist/*.tar.gz
-            release/*.zip
-            release/*.tar.gz
-            release/*SHA256SUMS.txt
+        shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.context.outputs.release_tag }}
+          RELEASE_BODY: ${{ steps.notes.outputs.body }}
+        run: |
+          shopt -s nullglob
+
+          ASSET_FILES=(dist/*.tar.gz release/*.zip release/*.tar.gz release/*SHA256SUMS.txt)
+          if [ ${#ASSET_FILES[@]} -eq 0 ]; then
+            echo "No release assets were found to publish."
+            exit 1
+          fi
+
+          NOTES_FILE="$(mktemp)"
+          printf '%s\n' "$RELEASE_BODY" > "$NOTES_FILE"
+
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release edit "$RELEASE_TAG" \
+              --title "CineScore AI $RELEASE_TAG" \
+              --notes-file "$NOTES_FILE"
+            gh release upload "$RELEASE_TAG" "${ASSET_FILES[@]}" --clobber
+          else
+            gh release create "$RELEASE_TAG" "${ASSET_FILES[@]}" \
+              --title "CineScore AI $RELEASE_TAG" \
+              --notes-file "$NOTES_FILE"
+          fi
 
   update-versions-json:
     name: Update versions.json checksums
