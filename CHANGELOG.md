@@ -5,7 +5,28 @@ All notable changes to CineScore-AI will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 
-## [0.1.2d] - 2026-04-09
+## [0.1.3] - 2026-04-09
+
+### Hotfix Release
+
+Targeted hotfix focused on runtime performance and release pipeline resilience.
+
+### Changed
+
+- **Performance optimization in directive and cue processing**
+  - Marker directive parsing paths were tuned to reduce repeated string and regex overhead
+  - Cue prompt metadata aggregation now avoids duplicate scans across the same directive set
+
+- **Update version comparison performance**
+  - Version sort-key generation now uses caching for repeated comparisons
+  - Hotpath regex patterns are compiled once and reused
+
+- **Release workflow robustness**
+  - Changelog highlight extraction now handles missing blocks and empty bullet lists safely
+  - Discord changelog notifications no longer fail due to strict pipe handling edge cases
+
+
+## [0.1.2rc1] - 2026-04-09
 
 ### Hotfix Release
 
@@ -232,7 +253,28 @@ Alle bemerkenswerten Änderungen an CineScore-AI werden in dieser Datei dokument
 Format basierend auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/)
 
 
-## [0.1.2d] - 2026-04-09
+## [0.1.3] - 2026-04-09
+
+### Hotfix-Release
+
+Gezielter Hotfix mit Fokus auf Laufzeit-Performance und robusteren Release-Ablauf.
+
+### Geaendert
+
+- **Performance-Optimierung in Directive- und Cue-Verarbeitung**
+  - Marker-Directive-Parsing wurde angepasst, um wiederholten String- und Regex-Overhead zu reduzieren
+  - Cue-Prompt-Metadaten werden nun ohne doppelte Durchlaeufe ueber dieselben Directives gebuendelt
+
+- **Performance beim Update-Versionsvergleich**
+  - Sortier-Keys fuer Versionen werden bei wiederholten Vergleichen gecacht
+  - Hotpath-Regex-Muster werden einmalig kompiliert und wiederverwendet
+
+- **Release-Workflow-Robustheit**
+  - Changelog-Highlight-Extraktion verarbeitet fehlende Bloecke und leere Bullet-Listen jetzt sicher
+  - Discord-Changelog-Benachrichtigungen scheitern nicht mehr an Pipe-Handling-Randfaellen
+
+
+## [0.1.2rc1] - 2026-04-09
 
 ### Hotfix-Release
 

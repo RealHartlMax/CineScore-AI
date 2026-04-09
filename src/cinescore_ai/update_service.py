@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import lru_cache
 import os
 from pathlib import Path
 import re
@@ -16,6 +17,8 @@ from cinescore_ai.version import get_app_version
 
 DEFAULT_GITHUB_OWNER = "RealHartlMax"
 DEFAULT_GITHUB_REPO = "CineScore-AI"
+_SEMVER_WITH_OPTIONAL_SUFFIX_RE = re.compile(r"^(\d+)\.(\d+)\.(\d+)(?:([-.]?)([A-Za-z][0-9A-Za-z.-]*))?$")
+_NON_VERSION_TOKEN_RE = re.compile(r"[^A-Za-z0-9._-]+")
 
 
 @dataclass(frozen=True, slots=True)
@@ -321,9 +324,10 @@ def _parse_release_info(payload: Any) -> ReleaseInfo:
     )
 
 
+@lru_cache(maxsize=256)
 def _version_sort_key(value: str) -> tuple[tuple[int, ...], int, str]:
     normalized = normalize_version(value)
-    match = re.match(r"^(\d+)\.(\d+)\.(\d+)(?:([-.]?)([A-Za-z][0-9A-Za-z.-]*))?$", normalized)
+    match = _SEMVER_WITH_OPTIONAL_SUFFIX_RE.match(normalized)
     if match:
         number_parts = tuple(int(part) for part in match.group(1, 2, 3))
         suffix = (match.group(5) or "").lower()
@@ -342,5 +346,5 @@ def _ps_quote(value: str) -> str:
 
 
 def _safe_version_token(value: str) -> str:
-    token = re.sub(r"[^A-Za-z0-9._-]+", "-", normalize_version(value))
+    token = _NON_VERSION_TOKEN_RE.sub("-", normalize_version(value))
     return token or "release"

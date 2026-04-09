@@ -6,6 +6,10 @@ import re
 from cinescore_ai.resolve import ResolveMarker
 
 
+_POSITIVE_INT_RE = re.compile(r"\d+")
+_MUSIC_TRACK_NAME_RE = re.compile(r"^\s*music\s*track\s*(\d+)\s*:\s*(.+?)\s*$", re.IGNORECASE)
+
+
 @dataclass(slots=True)
 class MarkerMusicDirective:
     marker: ResolveMarker
@@ -32,7 +36,8 @@ class MarkerMusicDirective:
 
 
 def parse_marker_music_directive(marker: ResolveMarker) -> MarkerMusicDirective:
-    directive = MarkerMusicDirective(marker=marker, cleaned_note=(marker.note or "").strip())
+    note_text = marker.note or ""
+    directive = MarkerMusicDirective(marker=marker, cleaned_note=note_text.strip())
     name_track_slot, name_theme_label = _parse_music_track_name(marker.name or "")
     directive.music_track_slot = name_track_slot
     directive.track_lane = _track_lane_for_slot(name_track_slot) if name_track_slot is not None else None
@@ -47,7 +52,7 @@ def parse_marker_music_directive(marker: ResolveMarker) -> MarkerMusicDirective:
     structure_tags: list[str] = []
     style_keywords: list[str] = []
 
-    for raw_line in (marker.note or "").splitlines():
+    for raw_line in note_text.splitlines():
         line = raw_line.strip()
         if not line:
             continue
@@ -62,7 +67,7 @@ def parse_marker_music_directive(marker: ResolveMarker) -> MarkerMusicDirective:
             style_keywords,
             collect_unparsed_as_style_keyword=False,
         ):
-            cleaned_lines.append(raw_line.strip())
+            cleaned_lines.append(line)
 
     for keyword in marker.keywords:
         _apply_directive_token(
@@ -227,10 +232,12 @@ def _parse_directive_line(line: str) -> tuple[str, str] | None:
     if normalized.lower().startswith("cinescore:"):
         normalized = normalized.split(":", 1)[1].strip()
 
-    for separator in ("=", ":"):
-        if separator in normalized:
-            left, right = normalized.split(separator, 1)
-            return left.strip().lower(), right.strip()
+    if "=" in normalized:
+        left, _, right = normalized.partition("=")
+        return left.strip().lower(), right.strip()
+    if ":" in normalized:
+        left, _, right = normalized.partition(":")
+        return left.strip().lower(), right.strip()
     return None
 
 
@@ -254,7 +261,7 @@ def _parse_positive_float(value: str, *, allow_zero: bool) -> float | None:
 
 
 def _parse_positive_int(value: str) -> int | None:
-    match = re.search(r"\d+", value)
+    match = _POSITIVE_INT_RE.search(value)
     if match is None:
         return None
     parsed = int(match.group(0))
@@ -276,7 +283,7 @@ def _parse_vocals_mode(value: str) -> str | None:
 
 
 def _parse_music_track_name(value: str) -> tuple[int | None, str | None]:
-    match = re.match(r"^\s*music\s*track\s*(\d+)\s*:\s*(.+?)\s*$", value, flags=re.IGNORECASE)
+    match = _MUSIC_TRACK_NAME_RE.match(value)
     if not match:
         return None, None
     return int(match.group(1)), match.group(2).strip()

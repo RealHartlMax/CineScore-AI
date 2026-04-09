@@ -340,17 +340,25 @@ jobs:
         run: |
           RELEASE_VERSION="${{ needs.context.outputs.release_version }}"
           CHANGELOG_FILE="CHANGELOG.md"
-          
-          # Extract version block from changelog
-          VERSION_BLOCK=$(sed -n "/^## \[${RELEASE_VERSION}\]/,/^## \[/p" "$CHANGELOG_FILE" | head -n -1)
-          
-          # Extract highlights (first 5 bullet points)
-          HIGHLIGHTS=$(echo "$VERSION_BLOCK" | grep "^- " | head -5 | cut -c3- | tr '\n' '\n' | sed 's/^/• /')
+
+          # Extract version block from changelog without failing when version is missing.
+          VERSION_BLOCK=$(awk -v v="$RELEASE_VERSION" '
+            BEGIN {in_block=0}
+            $0 ~ "^## \\[" v "\\]" {in_block=1; next}
+            in_block && $0 ~ "^## \\[" {exit}
+            in_block {print}
+          ' "$CHANGELOG_FILE")
+
+          # Extract highlights (first 5 bullet points) with a fallback to avoid pipefail exits.
+          HIGHLIGHTS=$(printf '%s\n' "$VERSION_BLOCK" | grep "^- " | head -5 | cut -c3- | sed 's/^/• /' || true)
+          if [ -z "$HIGHLIGHTS" ]; then
+            HIGHLIGHTS="• No changelog highlights found for ${RELEASE_VERSION}."
+          fi
           
           EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
-          echo "highlights<<$EOF" >> $GITHUB_OUTPUT
-          echo "$HIGHLIGHTS" >> $GITHUB_OUTPUT
-          echo "$EOF" >> $GITHUB_OUTPUT
+          echo "highlights<<$EOF" >> "$GITHUB_OUTPUT"
+          echo "$HIGHLIGHTS" >> "$GITHUB_OUTPUT"
+          echo "$EOF" >> "$GITHUB_OUTPUT"
 
       - name: Send changelog to Discord
         uses: sarisia/actions-status-discord@v1

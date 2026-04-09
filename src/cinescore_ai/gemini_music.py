@@ -778,6 +778,8 @@ class GeminiMusicGenerationService:
         else:
             note_lines.append("- Intro section before the first marker.")
 
+        cue_metadata = _collect_cue_metadata(cue_plan.directives)
+
         transition_instruction = ""
         if cue_plan.fade_out_seconds > 0:
             transition_instruction = (
@@ -830,32 +832,32 @@ class GeminiMusicGenerationService:
             prompt_parts.append(f"Overall style anchor: {base_prompt}")
         if cue_keywords:
             prompt_parts.append(f"Style keywords for this cue: {', '.join(cue_keywords)}")
-        genre_tags = _cue_genre_tags(cue_plan.directives)
+        genre_tags = cue_metadata["genre_tags"]
         if genre_tags:
             prompt_parts.append(f"Genre = {', '.join(genre_tags)}")
-        instruments = _cue_instruments(cue_plan.directives)
+        instruments = cue_metadata["instruments"]
         if instruments:
             prompt_parts.append(f"Instruments = {', '.join(instruments)}")
-        bpm = _cue_bpm(cue_plan.directives)
+        bpm = cue_metadata["bpm"]
         if bpm is not None:
             prompt_parts.append(f"BPM = {bpm}")
-        key_scale = _cue_key_scale(cue_plan.directives)
+        key_scale = cue_metadata["key_scale"]
         if key_scale:
             prompt_parts.append(f"Key/Scale = {key_scale}")
-        mood_tags = _cue_mood_tags(cue_plan.directives)
+        mood_tags = cue_metadata["mood_tags"]
         if mood_tags:
             prompt_parts.append(f"Mood = {', '.join(mood_tags)}")
-        structure_tags = _cue_structure_tags(cue_plan.directives)
+        structure_tags = cue_metadata["structure_tags"]
         if structure_tags:
             prompt_parts.append(f"Structure = {', '.join(structure_tags)}")
         if music_settings.output_format.lower() == "wav":
             prompt_parts.append("Audio target = 48 kHz stereo WAV, prefer 32-bit float, minimum 24-bit.")
-        structured_inputs = _cue_input_lines(cue_plan.directives)
+        structured_inputs = cue_metadata["input_lines"]
         if structured_inputs:
             prompt_parts.append("Structured inputs:")
             prompt_parts.extend(structured_inputs)
         prompt_parts.append("Structured prompt JSON:")
-        prompt_parts.append(_cue_structured_json(cue_plan))
+        prompt_parts.append(_cue_structured_json(cue_plan, cue_metadata=cue_metadata))
         prompt_parts.append("Musical directives for this cue:")
         prompt_parts.extend(note_lines)
         prompt = "\n".join(prompt_parts)
@@ -891,22 +893,23 @@ class GeminiMusicGenerationService:
         return build_http_session()
 
 
+def _ordered_unique_strings(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for value in values:
+        if value in seen:
+            continue
+        seen.add(value)
+        ordered.append(value)
+    return ordered
+
+
 def _cue_genre_tags(directives: list[MarkerMusicDirective]) -> list[str]:
-    tags: list[str] = []
-    for directive in directives:
-        for tag in directive.genre_tags:
-            if tag not in tags:
-                tags.append(tag)
-    return tags
+    return _ordered_unique_strings([tag for directive in directives for tag in directive.genre_tags])
 
 
 def _cue_instruments(directives: list[MarkerMusicDirective]) -> list[str]:
-    items: list[str] = []
-    for directive in directives:
-        for item in directive.instruments:
-            if item not in items:
-                items.append(item)
-    return items
+    return _ordered_unique_strings([item for directive in directives for item in directive.instruments])
 
 
 def _cue_bpm(directives: list[MarkerMusicDirective]) -> int | None:
@@ -924,21 +927,11 @@ def _cue_key_scale(directives: list[MarkerMusicDirective]) -> str | None:
 
 
 def _cue_mood_tags(directives: list[MarkerMusicDirective]) -> list[str]:
-    items: list[str] = []
-    for directive in directives:
-        for item in directive.mood_tags:
-            if item not in items:
-                items.append(item)
-    return items
+    return _ordered_unique_strings([item for directive in directives for item in directive.mood_tags])
 
 
 def _cue_structure_tags(directives: list[MarkerMusicDirective]) -> list[str]:
-    items: list[str] = []
-    for directive in directives:
-        for item in directive.structure_tags:
-            if item not in items:
-                items.append(item)
-    return items
+    return _ordered_unique_strings([item for directive in directives for item in directive.structure_tags])
 
 
 def _cue_input_lines(directives: list[MarkerMusicDirective]) -> list[str]:
@@ -956,7 +949,12 @@ def _cue_input_lines(directives: list[MarkerMusicDirective]) -> list[str]:
     return lines
 
 
-def _cue_structured_json(cue_plan: GeminiMusicCuePlan) -> str:
+def _cue_structured_json(
+    cue_plan: GeminiMusicCuePlan,
+    *,
+    cue_metadata: dict[str, Any] | None = None,
+) -> str:
+    metadata = cue_metadata or _collect_cue_metadata(cue_plan.directives)
     stop_directive = _cue_stop_directive(cue_plan.directives, cue_plan.start_seconds)
     stop_mode = _cue_stop_mode(stop_directive)
     payload: dict[str, Any] = {
@@ -969,12 +967,12 @@ def _cue_structured_json(cue_plan: GeminiMusicCuePlan) -> str:
             "track_lane": cue_plan.track_display_label or cue_plan.track_lane,
             "stop_timestamp": stop_directive.marker.timestamp if stop_directive is not None else None,
             "stop_mode": stop_mode,
-            "genres": _cue_genre_tags(cue_plan.directives),
-            "instruments": _cue_instruments(cue_plan.directives),
-            "bpm": _cue_bpm(cue_plan.directives),
-            "key_scale": _cue_key_scale(cue_plan.directives),
-            "mood": _cue_mood_tags(cue_plan.directives),
-            "structure": _cue_structure_tags(cue_plan.directives),
+            "genres": metadata["genre_tags"],
+            "instruments": metadata["instruments"],
+            "bpm": metadata["bpm"],
+            "key_scale": metadata["key_scale"],
+            "mood": metadata["mood_tags"],
+            "structure": metadata["structure_tags"],
             "vocals_mode": cue_plan.vocals_mode,
         },
         "marker_inputs": [
@@ -989,7 +987,19 @@ def _cue_structured_json(cue_plan: GeminiMusicCuePlan) -> str:
             if directive.genre_tags or directive.input_text or directive.stop_here
         ],
     }
-    return json.dumps(payload, ensure_ascii=False, indent=2)
+    return json.dumps(payload, ensure_ascii=False, separators=(",", ": "))
+
+
+def _collect_cue_metadata(directives: list[MarkerMusicDirective]) -> dict[str, Any]:
+    return {
+        "genre_tags": _cue_genre_tags(directives),
+        "instruments": _cue_instruments(directives),
+        "bpm": _cue_bpm(directives),
+        "key_scale": _cue_key_scale(directives),
+        "mood_tags": _cue_mood_tags(directives),
+        "structure_tags": _cue_structure_tags(directives),
+        "input_lines": _cue_input_lines(directives),
+    }
 
 
 def _cue_stop_boundary_seconds(
@@ -1189,12 +1199,7 @@ def _cue_vocals_mode(
 
 
 def _cue_style_keywords(directives: list[MarkerMusicDirective]) -> list[str]:
-    keywords: list[str] = []
-    for directive in directives:
-        for keyword in directive.style_keywords:
-            if keyword not in keywords:
-                keywords.append(keyword)
-    return keywords
+    return _ordered_unique_strings([keyword for directive in directives for keyword in directive.style_keywords])
 
 
 def _slugify_fragment(value: str) -> str:
