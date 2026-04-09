@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: cinescore-ai
-Version: 0.1.2b
+Version: 0.1.2c
 Summary: DaVinci Resolve AI audio composer settings UI and credential manager.
 Requires-Python: <3.12,>=3.10
 Description-Content-Type: text/markdown

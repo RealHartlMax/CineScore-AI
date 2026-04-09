@@ -1,6 +1,40 @@
 {
   "releases": [
     {
+      "version": "0.1.2c",
+      "release_date": "2026-04-09",
+      "stable": false,
+      "download_urls": {
+        "windows_exe": "https://github.com/RealHartlMax/CineScore-AI/releases/download/v0.1.2c/CineScore-AI-Setup.exe",
+        "runtime_zip": "https://github.com/RealHartlMax/CineScore-AI/releases/download/v0.1.2c/CineScore-AI-v0.1.2c-runtime-windows.zip",
+        "runtime_tar_gz": "https://github.com/RealHartlMax/CineScore-AI/releases/download/v0.1.2c/CineScore-AI-v0.1.2c-runtime-macos-linux.tar.gz",
+        "source": "https://github.com/RealHartlMax/CineScore-AI/archive/refs/tags/v0.1.2c.zip"
+      },
+      "checksums": {
+        "windows_exe": "SHA256_HASH_HERE",
+        "runtime_zip": "SHA256_HASH_HERE",
+        "runtime_tar_gz": "SHA256_HASH_HERE"
+      },
+      "highlights": {
+        "en": [
+          "Update dialog now shows the changelog chain for all releases newer than the installed version",
+          "Update checks now collect the full list of newer GitHub releases instead of only the latest release",
+          "Auto-tag workflow now reports clearly why a release continued, stopped, or was skipped"
+        ],
+        "de": [
+          "Der Update-Dialog zeigt jetzt die Changelog-Kette aller Releases an, die neuer als die installierte Version sind",
+          "Update-Checks sammeln jetzt die komplette Liste neuerer GitHub-Releases statt nur des neuesten Releases",
+          "Der Auto-Tag-Workflow meldet nun klar, warum ein Release weiterlief, stoppte oder uebersprungen wurde"
+        ]
+      },
+      "release_notes_en": "Follow-up hotfix after the already committed v0.1.2b release. See CHANGELOG.md for full details.",
+      "release_notes_de": "Nachgelagerter Hotfix nach dem bereits commiteten v0.1.2b-Release. Siehe CHANGELOG.md fuer vollstaendige Details.",
+      "min_python_version": "3.10",
+      "platforms": ["windows", "macos", "linux"],
+      "breaking_changes": false,
+      "deprecations": []
+    },
+    {
       "version": "0.1.2b",
       "release_date": "2026-04-09",
       "stable": false,
@@ -149,7 +183,7 @@
       "deprecations": []
     }
   ],
-  "latest": "0.1.2b",
+  "latest": "0.1.2c",
   "metadata": {
     "project_name": "CineScore-AI",
     "project_url": "https://github.com/RealHartlMax/CineScore-AI",

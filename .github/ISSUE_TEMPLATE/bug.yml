@@ -14,7 +14,7 @@ body:
     attributes:
       label: CineScore AI version
       description: Use the version shown in the app header or the GitHub release tag.
-      placeholder: "0.1.2b"
+      placeholder: "0.1.2c"
     validations:
       required: true
 

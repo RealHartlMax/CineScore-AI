@@ -12,6 +12,7 @@ jobs:
     if: github.ref_type == 'branch' && github.ref_name == github.event.repository.default_branch
     runs-on: ubuntu-latest
     outputs:
+      reason: ${{ steps.parse.outputs.reason }}
       should_release: ${{ steps.parse.outputs.should_release }}
       tag_name: ${{ steps.parse.outputs.tag_name }}
       version: ${{ steps.parse.outputs.version }}
@@ -26,11 +27,14 @@ jobs:
           printf '%s\n' "$COMMIT_MESSAGE"
           if [[ "$COMMIT_MESSAGE" =~ (^|[[:space:]])(release|version|hotfix)[[:space:]]*:[[:space:]]*v?([0-9]+\.[0-9]+\.[0-9]+([-.]?[0-9A-Za-z][0-9A-Za-z.-]*)?)($|[[:space:]]) ]]; then
             VERSION="${BASH_REMATCH[3]}"
+            MARKER_KIND="${BASH_REMATCH[2]}"
+            echo "reason=marker:${MARKER_KIND}" >> "$GITHUB_OUTPUT"
             echo "should_release=true" >> "$GITHUB_OUTPUT"
             echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
             echo "tag_name=v${VERSION}" >> "$GITHUB_OUTPUT"
-            echo "Detected release marker for version ${VERSION}."
+            echo "Detected ${MARKER_KIND} marker for version ${VERSION}."
           else
+            echo "reason=no-marker" >> "$GITHUB_OUTPUT"
             echo "should_release=false" >> "$GITHUB_OUTPUT"
             echo "No release marker found in the head commit message."
           fi
@@ -73,6 +77,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       tag_created: ${{ steps.tag.outputs.tag_created }}
+      tag_reason: ${{ steps.tag.outputs.tag_reason }}
 
     steps:
       - name: Checkout repository
@@ -90,6 +95,7 @@ jobs:
           if git ls-remote --tags origin "refs/tags/${TAG_NAME}" | grep -q "${TAG_NAME}$"; then
             echo "Tag ${TAG_NAME} already exists on origin."
             echo "tag_created=false" >> "$GITHUB_OUTPUT"
+            echo "tag_reason=already-exists" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -98,6 +104,7 @@ jobs:
           git tag "${TAG_NAME}" "${GITHUB_SHA}" -m "Release ${TAG_NAME}"
           git push origin "refs/tags/${TAG_NAME}"
           echo "tag_created=true" >> "$GITHUB_OUTPUT"
+          echo "tag_reason=created" >> "$GITHUB_OUTPUT"
 
   release:
     name: Publish release
@@ -110,3 +117,69 @@ jobs:
       tag_name: ${{ needs.detect.outputs.tag_name }}
       release_sha: ${{ github.sha }}
     secrets: inherit
+
+  report:
+    name: Report release outcome
+    if: always()
+    needs:
+      - detect
+      - validate-version
+      - create-tag
+      - release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Summarize auto-tag result
+        shell: bash
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          DETECT_RESULT: ${{ needs.detect.result }}
+          DETECT_REASON: ${{ needs.detect.outputs.reason }}
+          SHOULD_RELEASE: ${{ needs.detect.outputs.should_release }}
+          VERSION: ${{ needs.detect.outputs.version }}
+          TAG_NAME: ${{ needs.detect.outputs.tag_name }}
+          VALIDATE_RESULT: ${{ needs.validate-version.result }}
+          CREATE_TAG_RESULT: ${{ needs.create-tag.result }}
+          TAG_CREATED: ${{ needs.create-tag.outputs.tag_created }}
+          TAG_REASON: ${{ needs.create-tag.outputs.tag_reason }}
+          RELEASE_RESULT: ${{ needs.release.result }}
+        run: |
+          summary_title="Auto Tag Release Result"
+          if [ "${REF_TYPE}" != "branch" ] || [ "${REF_NAME}" != "${DEFAULT_BRANCH}" ]; then
+            summary_body="Skipped: auto-tag releases only run on the default branch (${DEFAULT_BRANCH}). Current ref: ${REF_TYPE}/${REF_NAME}."
+          elif [ "${DETECT_RESULT}" = "failure" ]; then
+            summary_body="Failed while parsing the head commit message for a release marker."
+          elif [ "${SHOULD_RELEASE}" != "true" ]; then
+            summary_body="No release started: no explicit release marker was found in the head commit message. Expected one of: release:, version:, hotfix:."
+          elif [ "${VALIDATE_RESULT}" = "failure" ]; then
+            summary_body="Release marker was found for ${VERSION}, but version validation failed. The commit marker must match src/cinescore_ai/version.py."
+          elif [ "${CREATE_TAG_RESULT}" = "failure" ]; then
+            summary_body="Release marker was found for ${VERSION}, but creating tag ${TAG_NAME} failed."
+          elif [ "${TAG_CREATED}" != "true" ]; then
+            summary_body="No new release started: tag ${TAG_NAME} already exists on origin."
+          elif [ "${RELEASE_RESULT}" = "success" ]; then
+            summary_body="Release pipeline started successfully for ${TAG_NAME}."
+          elif [ "${RELEASE_RESULT}" = "failure" ]; then
+            summary_body="Release pipeline was started for ${TAG_NAME}, but the downstream reusable release workflow failed."
+          else
+            summary_body="Release pipeline did not continue. Detect=${DETECT_RESULT}, Validate=${VALIDATE_RESULT}, CreateTag=${CREATE_TAG_RESULT}, Release=${RELEASE_RESULT}."
+          fi
+
+          echo "${summary_title}: ${summary_body}"
+          {
+            echo "## ${summary_title}"
+            echo
+            echo "${summary_body}"
+            echo
+            echo "- Detect: ${DETECT_RESULT}"
+            echo "- Detect reason: ${DETECT_REASON:-n/a}"
+            echo "- Should release: ${SHOULD_RELEASE:-false}"
+            echo "- Version: ${VERSION:-n/a}"
+            echo "- Tag: ${TAG_NAME:-n/a}"
+            echo "- Validate version: ${VALIDATE_RESULT}"
+            echo "- Create tag: ${CREATE_TAG_RESULT} (${TAG_REASON:-n/a})"
+            echo "- Tag created: ${TAG_CREATED:-false}"
+            echo "- Publish release: ${RELEASE_RESULT}"
+          } >> "$GITHUB_STEP_SUMMARY"

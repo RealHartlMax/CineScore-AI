@@ -68,7 +68,7 @@ jobs:
             exit 1
           fi
 
-          # Allow raw version input like 0.1.1 or 0.1.2b and normalize to a v-prefixed tag.
+          # Allow raw version input like 0.1.1 or 0.1.2c and normalize to a v-prefixed tag.
           if [[ "${RELEASE_TAG}" =~ ${VERSION_PATTERN} ]]; then
             RELEASE_TAG="v${RELEASE_TAG}"
           fi

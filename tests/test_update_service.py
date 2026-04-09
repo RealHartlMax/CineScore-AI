@@ -42,9 +42,9 @@ class UpdateServiceTests(unittest.TestCase):
         self.assertFalse(is_newer_version("0.1.0-beta", "0.1.0"))
 
     def test_is_newer_version_handles_letter_suffix_prereleases(self) -> None:
-        self.assertFalse(is_newer_version("0.1.2b", "0.1.2"))
-        self.assertTrue(is_newer_version("0.1.2", "0.1.2b"))
-        self.assertTrue(is_newer_version("0.1.2b", "0.1.1"))
+        self.assertFalse(is_newer_version("0.1.2c", "0.1.2"))
+        self.assertTrue(is_newer_version("0.1.2", "0.1.2c"))
+        self.assertTrue(is_newer_version("0.1.2c", "0.1.1"))
 
     def test_check_for_update_parses_latest_release(self) -> None:
         session = _FakeSession(
@@ -78,11 +78,11 @@ class UpdateServiceTests(unittest.TestCase):
                 200,
                 [
                     {
-                        "tag_name": "v0.1.2b",
-                        "name": "v0.1.2b",
+                        "tag_name": "v0.1.2c",
+                        "name": "v0.1.2c",
                         "body": "hotfix body",
-                        "html_url": "https://github.com/RealHartlMax/CineScore-AI/releases/tag/v0.1.2b",
-                        "zipball_url": "https://api.github.com/repos/RealHartlMax/CineScore-AI/zipball/v0.1.2b",
+                        "html_url": "https://github.com/RealHartlMax/CineScore-AI/releases/tag/v0.1.2c",
+                        "zipball_url": "https://api.github.com/repos/RealHartlMax/CineScore-AI/zipball/v0.1.2c",
                     },
                     {
                         "tag_name": "v0.1.2",
@@ -106,8 +106,8 @@ class UpdateServiceTests(unittest.TestCase):
         result = service.check_for_update(current_version="0.1.0")
 
         self.assertTrue(result.update_available)
-        self.assertEqual(result.latest_release.version, "0.1.2b")
-        self.assertEqual([release.version for release in result.newer_releases], ["0.1.2b", "0.1.2", "0.1.1"])
+        self.assertEqual(result.latest_release.version, "0.1.2c")
+        self.assertEqual([release.version for release in result.newer_releases], ["0.1.2c", "0.1.2", "0.1.1"])
 
     def test_check_for_update_treats_404_as_no_release_yet(self) -> None:
         response = _FakeResponse(404, {})

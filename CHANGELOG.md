@@ -5,6 +5,25 @@ All notable changes to CineScore-AI will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 
+## [0.1.2c] - 2026-04-09
+
+### Hotfix Release
+
+Follow-up hotfix after the already committed `v0.1.2b` release.
+
+### Added
+
+- **Update dialog release history**
+  - The update window now shows the changelog chain for all releases newer than the installed version instead of only the latest release body
+  - Update checks now collect the full list of newer GitHub releases so users can review all skipped versions in one place
+
+### Changed
+
+- **Auto-tag workflow feedback**
+  - Added a final report job that explains why the auto-tag release pipeline continued, stopped, or skipped downstream jobs
+  - Workflow summaries now expose reasons such as missing marker, version mismatch, existing tag, or downstream release failure
+
+
 ## [0.1.2b] - 2026-04-09
 
 ### Hotfix Release
@@ -181,6 +200,25 @@ See [README.md](README.md) for detailed installation instructions.
 Alle bemerkenswerten Änderungen an CineScore-AI werden in dieser Datei dokumentiert.
 
 Format basierend auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/)
+
+
+## [0.1.2c] - 2026-04-09
+
+### Hotfix-Release
+
+Nachgelagerter Hotfix nach dem bereits commiteten `v0.1.2b`-Release.
+
+### Hinzugefuegt
+
+- **Release-Historie im Update-Dialog**
+  - Das Update-Fenster zeigt jetzt die Changelog-Kette aller Releases an, die neuer als die installierte Version sind, statt nur den Body des neuesten Releases
+  - Update-Checks sammeln jetzt die komplette Liste neuerer GitHub-Releases, damit Nutzer alle uebersprungenen Versionen gesammelt sehen koennen
+
+### Geaendert
+
+- **Rueckmeldung im Auto-Tag-Workflow**
+  - Ein finaler Report-Job erklaert jetzt, warum die Auto-Tag-Release-Pipeline weiterlief, stoppte oder nachgelagerte Jobs uebersprungen hat
+  - Workflow-Zusammenfassungen zeigen Gruende wie fehlenden Marker, Versions-Mismatch, existierenden Tag oder Fehler im nachgelagerten Release-Workflow
 
 
 ## [0.1.2b] - 2026-04-09
