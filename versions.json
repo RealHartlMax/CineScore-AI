@@ -11,9 +11,9 @@
         "source": "https://github.com/RealHartlMax/CineScore-AI/archive/refs/tags/v0.1.2rc1.zip"
       },
       "checksums": {
-        "windows_exe": "SHA256_HASH_HERE",
-        "runtime_zip": "SHA256_HASH_HERE",
-        "runtime_tar_gz": "SHA256_HASH_HERE"
+        "windows_exe": "8f2871da1e426eae8d1cd9032d225c4c710c88fcb173290ac6cc53a4ba862145",
+        "runtime_zip": "c42607cb9c51b806341d933444cbab415e3790c1e25af7fa72f969ec4881e571",
+        "runtime_tar_gz": "157d5797835f88f11a6f3fa90a57d160737959da15706ea7901190ba7d83f397"
       },
       "highlights": {
         "en": [
@@ -32,7 +32,11 @@
       "release_notes_en": "Hotfix following v0.1.2c with Windows installer, Discord integration, and improved version handling. See CHANGELOG.md for full details.",
       "release_notes_de": "Hotfix nach v0.1.2c mit Windows-Installer, Discord-Integration und verbesserter Versionsverwaltung. Siehe CHANGELOG.md fuer vollstaendige Details.",
       "min_python_version": "3.10",
-      "platforms": ["windows", "macos", "linux"],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "breaking_changes": false,
       "deprecations": []
     },
@@ -66,7 +70,11 @@
       "release_notes_en": "Follow-up hotfix after the already committed v0.1.2b release. See CHANGELOG.md for full details.",
       "release_notes_de": "Nachgelagerter Hotfix nach dem bereits commiteten v0.1.2b-Release. Siehe CHANGELOG.md fuer vollstaendige Details.",
       "min_python_version": "3.10",
-      "platforms": ["windows", "macos", "linux"],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "breaking_changes": false,
       "deprecations": []
     },
@@ -102,7 +110,11 @@
       "release_notes_en": "Release automation and CI hotfix for the follow-up v0.1.2b release candidate. See CHANGELOG.md for full details.",
       "release_notes_de": "Release-Automation- und CI-Hotfix fuer den nachfolgenden v0.1.2b-Release-Kandidaten. Siehe CHANGELOG.md fuer vollstaendige Details.",
       "min_python_version": "3.10",
-      "platforms": ["windows", "macos", "linux"],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "breaking_changes": false,
       "deprecations": []
     },
@@ -138,7 +150,11 @@
       "release_notes_en": "CI/CD stability hotfix - See CHANGELOG.md for full details.",
       "release_notes_de": "CI/CD-Stabilitaets-Hotfix - Siehe CHANGELOG.md fuer vollstaendige Details.",
       "min_python_version": "3.10",
-      "platforms": ["windows", "macos", "linux"],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "breaking_changes": false,
       "deprecations": []
     },
@@ -176,7 +192,11 @@
       "release_notes_en": "Hotfix release - See CHANGELOG.md for full details.",
       "release_notes_de": "Hotfix-Release - Siehe CHANGELOG.md fuer vollstaendige Details.",
       "min_python_version": "3.10",
-      "platforms": ["windows", "macos", "linux"],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "breaking_changes": false,
       "deprecations": []
     },
@@ -214,7 +234,11 @@
       "release_notes_en": "First stable release - See CHANGELOG.md for full details.",
       "release_notes_de": "Erstes stabiles Release - Siehe CHANGELOG.md fuer vollstaendige Details.",
       "min_python_version": "3.10",
-      "platforms": ["windows", "macos", "linux"],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "breaking_changes": false,
       "deprecations": []
     }
@@ -224,6 +248,8 @@
     "project_name": "CineScore-AI",
     "project_url": "https://github.com/RealHartlMax/CineScore-AI",
     "update_check_interval_days": 7,
-    "auto_update_enabled_platforms": ["windows"]
+    "auto_update_enabled_platforms": [
+      "windows"
+    ]
   }
 }
