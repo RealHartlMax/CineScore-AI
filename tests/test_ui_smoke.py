@@ -13,9 +13,10 @@ ensure_src_path()
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 try:
-    from PySide6.QtWidgets import QApplication
+    from PySide6.QtWidgets import QApplication, QMessageBox
 except ImportError:  # pragma: no cover - depends on local environment
     QApplication = None
+    QMessageBox = None
 
 from cinescore_ai.config import AppConfigStore
 from cinescore_ai.audio import AudioWorkflowService
@@ -54,6 +55,10 @@ class SettingsWindowSmokeTests(unittest.TestCase):
                 self.assertEqual(window.windowTitle(), "CineScore AI Settings")
                 self.assertIn("Development Mode", window.runtime_label.text())
                 self.assertTrue(window.version_label.text().startswith("Installed version: "))
+                self.assertEqual(window.discord_button.text(), "")
+                self.assertTrue(window.discord_button.isFlat())
+                self.assertEqual(window.discord_button.width(), 44)
+                self.assertEqual(window.discord_button.height(), 44)
                 self.assertEqual(window.settings_tabs.count(), 5)
                 self.assertEqual(window.settings_tabs.tabText(0), "Resolve")
                 self.assertEqual(window.settings_tabs.tabText(1), "Gemini")
@@ -107,5 +112,71 @@ class SettingsWindowSmokeTests(unittest.TestCase):
                 self.assertEqual(window.gemini_music_model_combo.currentText(), "lyria-3-pro-preview")
                 self.assertGreaterEqual(window.gemini_model_edit.count(), 2)
                 self.assertGreaterEqual(window.gemini_music_model_combo.count(), 2)
+            finally:
+                window.close()
+
+    def test_wav_error_detection_and_reason_classification_helpers(self) -> None:
+        app = QApplication.instance() or QApplication([])
+        with TemporaryDirectory() as temp_dir:
+            adapter = MockResolveAdapter()
+            window = SettingsWindow(
+                config_store=AppConfigStore(config_file_path=Path(temp_dir) / "config.json"),
+                secret_store=InMemorySecretStore(),
+                resolve_adapter=adapter,
+                connection_test_service=ConnectionTestService(session=None),
+                gemini_video_analysis_service=GeminiVideoAnalysisService(session=None),
+                gemini_music_generation_service=GeminiMusicGenerationService(resolve_adapter=adapter, session=None),
+                audio_workflow_service=AudioWorkflowService(resolve_adapter=adapter, session=None),
+                resolve_workflow_service=ResolveWorkflowService(resolve_adapter=adapter),
+                localizer=Localizer("en"),
+            )
+
+            window._set_combo_value(window.gemini_music_output_combo, "wav")
+
+            try:
+                self.assertTrue(
+                    window._should_offer_mp3_fallback(
+                        "Cue 'A' requested WAV but Gemini returned audio/mpeg. Strict WAV mode rejected the response."
+                    )
+                )
+                self.assertEqual(
+                    window._classify_wav_error_reason(
+                        "Cue 'A' requested WAV but Gemini returned audio/mpeg. Strict WAV mode rejected the response."
+                    ),
+                    "Error Y: Gemini returned non-WAV audio while WAV was requested.",
+                )
+                self.assertEqual(
+                    window._classify_wav_error_reason(
+                        "Gemini music generation failed (HTTP 400): generation_config.response_mime_type only allows text/plain"
+                    ),
+                    "Error X: Gemini rejected the WAV response MIME parameter.",
+                )
+            finally:
+                window.close()
+
+    def test_wav_error_detection_disabled_when_output_is_mp3(self) -> None:
+        app = QApplication.instance() or QApplication([])
+        with TemporaryDirectory() as temp_dir:
+            adapter = MockResolveAdapter()
+            window = SettingsWindow(
+                config_store=AppConfigStore(config_file_path=Path(temp_dir) / "config.json"),
+                secret_store=InMemorySecretStore(),
+                resolve_adapter=adapter,
+                connection_test_service=ConnectionTestService(session=None),
+                gemini_video_analysis_service=GeminiVideoAnalysisService(session=None),
+                gemini_music_generation_service=GeminiMusicGenerationService(resolve_adapter=adapter, session=None),
+                audio_workflow_service=AudioWorkflowService(resolve_adapter=adapter, session=None),
+                resolve_workflow_service=ResolveWorkflowService(resolve_adapter=adapter),
+                localizer=Localizer("en"),
+            )
+
+            window._set_combo_value(window.gemini_music_output_combo, "mp3")
+
+            try:
+                self.assertFalse(
+                    window._should_offer_mp3_fallback(
+                        "Cue 'A' requested WAV but Gemini returned audio/mpeg. Strict WAV mode rejected the response."
+                    )
+                )
             finally:
                 window.close()

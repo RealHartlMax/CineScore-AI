@@ -6,6 +6,40 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ---
 
+## [0.1.1] - 2026-04-09
+
+### Hotfix Release
+
+Focused hotfix release for WAV generation reliability, workflow robustness, and UI/doc polish.
+
+### Fixed
+
+- **Gemini WAV generation compatibility**
+  - Added automatic retry without `responseMimeType` when Gemini rejects WAV `response_mime_type` requests (HTTP 400)
+  - Kept strict WAV validation active after retry (non-WAV responses are still rejected in WAV mode)
+
+- **WAV fallback UX**
+  - Added a confirmation popup when WAV generation fails with known WAV/API mismatch errors
+  - Users can explicitly choose whether to retry with MP3 fallback (`Yes`/`No`)
+
+- **Release automation marker parsing**
+  - Added `hotfix:` marker support in auto-tag workflow
+  - Improved version marker handling for optional `v` prefix in release tags
+
+### Changed
+
+- **Output organization and Resolve import structure**
+  - Generated music is now grouped by project and timeline subfolders
+  - Resolve Media Pool import path now mirrors this structure under `CineScore AI Music / <project> / <timeline>`
+
+- **UI refinement**
+  - Discord community button updated to icon-based style
+  - Removed visual focus frame on Discord icon button
+
+- **Documentation updates**
+  - Clarified installer vs. source/developer setup paths
+  - Added donation/support guidance in disclaimer with reference to funding configuration
+
 ## [0.1.0] - 2026-04-09
 
 ### Initial Release
@@ -93,6 +127,40 @@ Alle bemerkenswerten Änderungen an CineScore-AI werden in dieser Datei dokument
 Format basierend auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/)
 
 ---
+
+## [0.1.1] - 2026-04-09
+
+### Hotfix-Release
+
+Fokussiertes Hotfix-Release fuer WAV-Generierungsstabilitaet, robusteren Workflow sowie UI-/Doku-Feinschliff.
+
+### Behoben
+
+- **Gemini WAV-Generierungskompatibilitaet**
+  - Automatischer Retry ohne `responseMimeType`, wenn Gemini WAV-`response_mime_type` Anfragen mit HTTP 400 ablehnt
+  - Strikte WAV-Pruefung bleibt auch nach Retry aktiv (Nicht-WAV wird im WAV-Modus weiterhin abgelehnt)
+
+- **WAV-Fallback-UX**
+  - Bestaetigungs-Popup hinzugefuegt, wenn WAV-Generierung bei bekannten WAV/API-Mismatch-Fehlern scheitert
+  - Nutzer koennen explizit per `Ja`/`Nein` entscheiden, ob ein MP3-Fallback-Retry erfolgen soll
+
+- **Release-Automation Marker-Parsing**
+  - `hotfix:` Marker im Auto-Tag-Workflow unterstuetzt
+  - Versionsmarker-Handling fuer optionales `v`-Praefix bei Release-Tags verbessert
+
+### Geaendert
+
+- **Ausgabe-Organisation und Resolve-Importstruktur**
+  - Generierte Musik wird nun in Unterordnern nach Projekt und Timeline abgelegt
+  - Resolve Media-Pool Importpfad spiegelt diese Struktur unter `CineScore AI Music / <project> / <timeline>`
+
+- **UI-Feinschliff**
+  - Discord-Community-Button auf icon-basierten Stil umgestellt
+  - Sichtbarer Fokusrahmen am Discord-Icon-Button entfernt
+
+- **Dokumentations-Updates**
+  - Installer-Setup fuer Endnutzer klarer von Source/Developer-Setup abgegrenzt
+  - Spenden-/Support-Hinweis im Disclaimer mit Verweis auf Funding-Konfiguration ergaenzt
 
 ## [0.1.0] - 2026-04-09
 

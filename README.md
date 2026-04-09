@@ -188,6 +188,7 @@ Supported markers:
 
 - `release: v0.2.0`
 - `version: 0.2.0`
+- `hotfix: 0.1.1`
 
 Important:
 
@@ -212,6 +213,14 @@ Alternative:
 chore: prepare release notes
 
 version: 0.2.0
+```
+
+Hotfix example:
+
+```text
+fix: correct updater edge case
+
+hotfix: 0.1.1
 ```
 
 3. Push to the default branch.
@@ -271,7 +280,8 @@ Notes:
 - `image=yes`: include marker images as visual prompt context
 - `lyrics=yes`: force vocals for this cue
 - `fade`: preferred crossfade length
-- `length`: target cue duration
+- `length`: target cue duration (optional explicit override via marker note/keywords)
+- Marker `Duration` field in Resolve (Marker dialog) is also considered as cue length for Lyria 3 Pro, so duration can be set without free text
 - `track`: numeric or named lane (`main`, `alt`, and so on)
 - `Genre`, `Instruments`, `BPM`, `Key`, `Mood`, `Song_Structure`: structured prompt fields
 - `Input`: free text per marker, used with marker timing
@@ -320,7 +330,7 @@ JSON-ready prompt structure example:
 - Lyria 3 Clip: `lyria-3-clip-preview`
 - WAV output is only supported by Lyria 3 Pro (according to API docs)
 - MP3 is the default path for both models
-- If WAV is requested but MPEG is returned, CineScore stores `.mp3` automatically so extension and container stay consistent
+- If WAV is requested, CineScore now enforces it strictly and fails the generation if the API returns a non-WAV response
 - WAV output requests target 48 kHz and >=24-bit (preferably 32-bit) and is validated after writing
 
 ### Configuration and Paths
@@ -333,8 +343,10 @@ Config file:
 
 Default directories:
 
-- Output: `Music/CineScore AI`
+- Output: `Music/CineScore AI/<project>/<timeline>`
 - Temp/Preview: local CineScore-AI cache directory
+
+Generated music is grouped into project and timeline subfolders. The same structure is also used for the Resolve MediaPool import under `CineScore AI Music / <project> / <timeline>`.
 
 ### Tests
 
@@ -366,7 +378,7 @@ Fallback render profiles are used (including alternate resolution keys) to impro
 
 WAV not imported or MediaInfo shows MPEG inside `.wav`:
 
-If the API returns MPEG despite WAV request, CineScore stores `.mp3` and logs the fallback. This prevents invalid `.wav` containers.
+With strict WAV mode, CineScore aborts generation if the API returns non-WAV audio. If this happens, select MP3 output as a practical fallback and rerun.
 
 `URL can't contain control characters` during `generateContent`:
 
@@ -588,6 +600,7 @@ Unterstuetzte Marker:
 
 - `release: v0.2.0`
 - `version: 0.2.0`
+- `hotfix: 0.1.1`
 
 Wichtig:
 
@@ -612,6 +625,14 @@ Alternativ:
 chore: prepare release notes
 
 version: 0.2.0
+```
+
+Hotfix-Beispiel:
+
+```text
+fix: korrigiere Sonderfall im Updater
+
+hotfix: 0.1.1
 ```
 
 3. Auf den Default-Branch pushen.
@@ -671,7 +692,8 @@ Hinweise:
 - `image=yes`: Marker-Frames als visuellen Prompt-Kontext nutzen
 - `lyrics=yes`: Gesang fuer den Cue erzwingen
 - `fade`: bevorzugte Crossfade-Dauer
-- `length`: Ziel-Laenge des Cues
+- `length`: Ziel-Laenge des Cues (optional explizites Override ueber Marker-Notiz/Keywords)
+- Das Marker-Feld `Dauer` in Resolve (Marker-Dialog) wird fuer Lyria 3 Pro ebenfalls als Cue-Laenge beruecksichtigt, damit die Laenge ohne Freitext gesetzt werden kann
 - `track`: numerische oder benannte Lane (`main`, `alt`, usw.)
 - `Genre`, `Instruments`, `BPM`, `Key`, `Mood`, `Song_Structure`: strukturierte Prompt-Felder
 - `Input`: Freitext pro Marker mit Zeitbezug
@@ -720,7 +742,7 @@ Beispiel fuer JSON-ready Prompt-Struktur:
 - Lyria 3 Clip: `lyria-3-clip-preview`
 - WAV-Ausgabe wird laut API nur von Lyria 3 Pro unterstuetzt
 - MP3 ist fuer beide Modelle der Standard
-- Wenn trotz WAV-Request MPEG zurueckkommt, speichert CineScore automatisch `.mp3`, damit Endung und Container zusammenpassen
+- Wenn WAV angefordert wird, erzwingt CineScore dieses Format jetzt strikt und bricht die Erzeugung ab, falls die API kein WAV zurueckliefert
 - WAV-Anfragen zielen auf 48 kHz und >=24-bit (bevorzugt 32-bit) und werden nach dem Schreiben geprueft
 
 ### Konfiguration und Speicherorte
@@ -733,8 +755,10 @@ Konfigurationsdatei:
 
 Standardordner:
 
-- Output: `Music/CineScore AI`
+- Output: `Music/CineScore AI/<projekt>/<timeline>`
 - Temp/Preview: lokaler CineScore-AI-Cache-Ordner
+
+Generierte Musik wird in Unterordnern nach Projekt und Timeline abgelegt. Dieselbe Struktur wird auch beim Resolve-MediaPool-Import unter `CineScore AI Music / <Projekt> / <Timeline>` verwendet.
 
 ### Tests
 
@@ -766,7 +790,7 @@ Fallback-Renderprofile (inklusive alternativer Aufloesungs-Keys) verbessern die 
 
 WAV wird nicht importiert oder MediaInfo zeigt MPEG in `.wav`:
 
-Wenn die API trotz WAV-Request MPEG liefert, speichert CineScore `.mp3` und protokolliert den Fallback. Dadurch entstehen keine falschen `.wav`-Container.
+Im strikten WAV-Modus bricht CineScore die Erzeugung ab, wenn die API kein WAV liefert. In diesem Fall MP3 als praktikable Alternative auswaehlen und erneut starten.
 
 `URL can't contain control characters` bei `generateContent`:
 

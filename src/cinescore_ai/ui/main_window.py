@@ -9,7 +9,8 @@ import sys
 from dataclasses import replace
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QThreadPool, QTimer
+from PySide6.QtCore import QEvent, QSize, Qt, QThreadPool, QTimer, QUrl
+from PySide6.QtGui import QDesktopServices, QIcon
 from PySide6.QtWidgets import (
     QApplication,
     QDialog,
@@ -129,6 +130,8 @@ class UpdateAvailableDialog(QDialog):
 
 
 class SettingsWindow(QMainWindow):
+    DISCORD_INVITE_URL = "https://discord.gg/ZhuhFhZrM5"
+
     def __init__(
         self,
         config_store: AppConfigStore,
@@ -195,6 +198,27 @@ class SettingsWindow(QMainWindow):
         self.secret_backend_label = QLabel()
         self.secret_backend_label.setWordWrap(True)
 
+        self.discord_button = QPushButton(self._t("Discord"))
+        self.discord_button.setObjectName("discordButton")
+        self.discord_button.setText("")
+        self.discord_button.setFlat(True)
+        self.discord_button.setFixedSize(44, 44)
+        self.discord_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.discord_button.setToolTip(self._t("Open the CineScore AI Discord community."))
+        self.discord_button.setIconSize(QSize(28, 28))
+        self._discord_icon_default = QIcon()
+        self._discord_icon_hover = QIcon()
+        discord_assets_dir = Path(__file__).resolve().parent / "assets"
+        discord_icon_default_path = discord_assets_dir / "discord.svg"
+        discord_icon_hover_path = discord_assets_dir / "discord_hover.svg"
+        if discord_icon_default_path.exists():
+            self._discord_icon_default = QIcon(str(discord_icon_default_path))
+        if discord_icon_hover_path.exists():
+            self._discord_icon_hover = QIcon(str(discord_icon_hover_path))
+        self._set_discord_button_icon(hovered=False)
+        self.discord_button.installEventFilter(self)
+        self.discord_button.clicked.connect(self._open_discord_community)
+
         self.settings_tabs = QTabWidget()
         self.settings_tabs.setDocumentMode(True)
         self.settings_tabs.addTab(self._build_tab_page(self._build_resolve_group()), self._t("Resolve"))
@@ -232,9 +256,19 @@ class SettingsWindow(QMainWindow):
         buttons_layout.addWidget(self.check_updates_button)
         buttons_layout.addWidget(self.save_button)
 
-        root_layout.addWidget(self.runtime_label)
-        root_layout.addWidget(self.version_label)
-        root_layout.addWidget(self.secret_backend_label)
+        header_layout = QHBoxLayout()
+        header_layout.setSpacing(12)
+
+        header_text_layout = QVBoxLayout()
+        header_text_layout.setSpacing(4)
+        header_text_layout.addWidget(self.runtime_label)
+        header_text_layout.addWidget(self.version_label)
+        header_text_layout.addWidget(self.secret_backend_label)
+
+        header_layout.addLayout(header_text_layout, 1)
+        header_layout.addWidget(self.discord_button, 0, Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
+
+        root_layout.addLayout(header_layout)
         root_layout.addWidget(self.settings_tabs, 1)
         root_layout.addWidget(self.status_group)
         root_layout.addLayout(buttons_layout)
@@ -720,6 +754,36 @@ class SettingsWindow(QMainWindow):
             )
         )
 
+    def _open_discord_community(self) -> None:
+        if not QDesktopServices.openUrl(QUrl(self.DISCORD_INVITE_URL)):
+            self._append_status(
+                self._t("Could not open Discord community link: {url}", url=self.DISCORD_INVITE_URL)
+            )
+            QMessageBox.warning(
+                self,
+                self._t("Discord"),
+                self._t("Could not open Discord community link: {url}", url=self.DISCORD_INVITE_URL),
+            )
+
+    def eventFilter(self, watched: object, event: object) -> bool:
+        if watched is self.discord_button and isinstance(event, QEvent):
+            if event.type() == QEvent.Type.Enter:
+                self._set_discord_button_icon(hovered=True)
+            elif event.type() == QEvent.Type.Leave:
+                self._set_discord_button_icon(hovered=False)
+            elif event.type() == QEvent.Type.MouseButtonPress:
+                self._set_discord_button_icon(hovered=True)
+            elif event.type() == QEvent.Type.MouseButtonRelease:
+                self._set_discord_button_icon(hovered=self.discord_button.underMouse())
+        return super().eventFilter(watched, event)
+
+    def _set_discord_button_icon(self, *, hovered: bool) -> None:
+        if hovered and not self._discord_icon_hover.isNull():
+            self.discord_button.setIcon(self._discord_icon_hover)
+            return
+        if not self._discord_icon_default.isNull():
+            self.discord_button.setIcon(self._discord_icon_default)
+
     def _populate_form(self, config: AppConfig) -> None:
         self._is_loading_form = True
         try:
@@ -994,7 +1058,12 @@ class SettingsWindow(QMainWindow):
             progress_handler=self._handle_gemini_analysis_progress,
         )
 
-    def _generate_music_with_gemini(self) -> None:
+    def _generate_music_with_gemini(
+        self,
+        *,
+        output_format_override: str | None = None,
+        retry_reason: str | None = None,
+    ) -> None:
         config = self._collect_config()
         api_key = self.gemini_api_key_edit.text().strip()
         preferred_preview_path = self._last_preview_render.target_path if self._last_preview_render is not None else None
@@ -1004,10 +1073,28 @@ class SettingsWindow(QMainWindow):
         self._last_gemini_music_progress_message = ""
         self._set_gemini_music_source_text(preferred_preview_path)
 
+        if output_format_override:
+            start_message = self._t(
+                "Retrying Gemini music generation with MP3 after WAV failure..."
+            )
+        else:
+            start_message = self._t("Starting Gemini music generation from timeline markers...")
+
+        if retry_reason:
+            self._append_status(
+                self._t("WAV fallback reason: {reason}", reason=retry_reason)
+            )
+
         self._run_background_task(
             button=self.generate_gemini_music_button,
-            start_message=self._t("Starting Gemini music generation from timeline markers..."),
-            callback=lambda progress: self._run_gemini_music_generation(config, api_key, preferred_preview_path, progress),
+            start_message=start_message,
+            callback=lambda progress: self._run_gemini_music_generation(
+                config,
+                api_key,
+                preferred_preview_path,
+                progress,
+                output_format_override=output_format_override,
+            ),
             result_handler=self._handle_gemini_music_generation_result,
             error_handler=self._handle_gemini_music_generation_error,
             progress_handler=self._handle_gemini_music_generation_progress,
@@ -1230,13 +1317,17 @@ class SettingsWindow(QMainWindow):
         api_key: str,
         preferred_preview_path: str | None,
         progress_callback,
+        output_format_override: str | None = None,
     ) -> GeminiMusicGenerationResult:
         preview_path = self._resolve_workflow_service.resolve_preview_path(config, preferred_preview_path)
         timeline_context = self._current_context or self._resolve_workflow_service.load_current_timeline_context()
+        music_settings = config.gemini_music
+        if output_format_override:
+            music_settings = replace(music_settings, output_format=output_format_override)
         return self._gemini_music_generation_service.generate_from_timeline(
             api_key=api_key,
             gemini_settings=config.gemini,
-            music_settings=config.gemini_music,
+            music_settings=music_settings,
             timeline_context=timeline_context,
             preview_path=preview_path,
             output_directory=config.paths.output_directory,
@@ -1307,19 +1398,54 @@ class SettingsWindow(QMainWindow):
                 mp3_count=mp3_count,
             )
         )
-        if result.output_format.lower() == "wav" and mp3_count > 0:
-            self._append_status(
-                self._t(
-                    "Requested WAV but Gemini returned MP3-compatible audio for {count} cue(s); saved as MP3 to preserve import compatibility.",
-                    count=mp3_count,
-                )
-            )
         for warning in result.warnings:
             self._append_status(self._t("Warning: {warning}", warning=warning))
 
     def _handle_gemini_music_generation_error(self, error_message: str) -> None:
         self.gemini_music_status_label.setText(error_message)
         self.gemini_music_preview.setPlainText("")
+        if not self._should_offer_mp3_fallback(error_message):
+            return
+
+        reason = self._classify_wav_error_reason(error_message)
+        answer = QMessageBox.question(
+            self,
+            self._t("WAV generation failed"),
+            self._t(
+                "WAV generation failed due to:\n{reason}\n\nWould you like to retry once with MP3 instead?",
+                reason=reason,
+            ),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            self._append_status(self._t("MP3 fallback was declined after WAV failure."))
+            return
+
+        self._append_status(self._t("MP3 fallback accepted. Retrying Gemini music generation."))
+        self._generate_music_with_gemini(output_format_override="mp3", retry_reason=reason)
+
+    def _should_offer_mp3_fallback(self, error_message: str) -> bool:
+        requested_format = self._selected_combo_value(self.gemini_music_output_combo).strip().lower()
+        if requested_format != "wav":
+            return False
+
+        normalized = error_message.lower()
+        return (
+            "requested wav but gemini returned" in normalized
+            or "strict wav mode rejected" in normalized
+            or "response_mime_type" in normalized
+            or "responsemimetype" in normalized
+            or "audio/wav" in normalized
+        )
+
+    def _classify_wav_error_reason(self, error_message: str) -> str:
+        normalized = error_message.lower()
+        if "response_mime_type" in normalized or "responsemimetype" in normalized:
+            return self._t("Error X: Gemini rejected the WAV response MIME parameter.")
+        if "requested wav but gemini returned" in normalized or "strict wav mode rejected" in normalized:
+            return self._t("Error Y: Gemini returned non-WAV audio while WAV was requested.")
+        return self._t("WAV generation failed due to a WAV format/API mismatch.")
 
     def _handle_audio_generation_progress(self, update: AudioGenerationProgressUpdate) -> None:
         if update.message:
@@ -1580,6 +1706,11 @@ class SettingsWindow(QMainWindow):
             outline: 1px solid #4a9c9c;
         }
 
+        QPushButton#discordButton:focus {
+            outline: none;
+            border: none;
+        }
+
         QPushButton:default {
             background-color: #d65d3e;
             color: #ffffff;
@@ -1601,6 +1732,26 @@ class SettingsWindow(QMainWindow):
             background-color: #262626;
             color: #606060;
             border: 1px solid #323232;
+        }
+
+        QPushButton#discordButton {
+            background-color: transparent;
+            border: none;
+            padding: 0px;
+            min-width: 44px;
+            max-width: 44px;
+            min-height: 44px;
+            max-height: 44px;
+        }
+
+        QPushButton#discordButton:hover {
+            background-color: transparent;
+            border: none;
+        }
+
+        QPushButton#discordButton:pressed {
+            background-color: transparent;
+            border: none;
         }
 
         /* Group Boxes */

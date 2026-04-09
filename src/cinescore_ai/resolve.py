@@ -152,7 +152,13 @@ class ResolveAdapter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def place_audio_clip(self, file_path: str, record_frame: int, track_index: int) -> ImportedAudioPlacement:
+    def place_audio_clip(
+        self,
+        file_path: str,
+        record_frame: int,
+        track_index: int,
+        timeline_context: ResolveTimelineContext | None = None,
+    ) -> ImportedAudioPlacement:
         raise NotImplementedError
 
 
@@ -279,7 +285,13 @@ class MockResolveAdapter(ResolveAdapter):
             self._mock_context.audio_track_count = desired_track
         return desired_track
 
-    def place_audio_clip(self, file_path: str, record_frame: int, track_index: int) -> ImportedAudioPlacement:
+    def place_audio_clip(
+        self,
+        file_path: str,
+        record_frame: int,
+        track_index: int,
+        timeline_context: ResolveTimelineContext | None = None,
+    ) -> ImportedAudioPlacement:
         audio_path = Path(file_path)
         if not audio_path.exists():
             raise ResolveAdapterError(f"Audio file does not exist: {audio_path}")
@@ -288,7 +300,7 @@ class MockResolveAdapter(ResolveAdapter):
             file_path=str(audio_path),
             track_index=resolved_track,
             record_frame=int(record_frame),
-            media_pool_folder_name=MEDIA_POOL_MUSIC_FOLDER_NAME,
+            media_pool_folder_name=_build_media_pool_folder_path(timeline_context),
             media_pool_item_name=audio_path.name,
             timeline_item_name=audio_path.stem,
             raw={"mock": True},
@@ -427,7 +439,13 @@ class RealResolveAdapter(ResolveAdapter):
 
         return desired_track
 
-    def place_audio_clip(self, file_path: str, record_frame: int, track_index: int) -> ImportedAudioPlacement:
+    def place_audio_clip(
+        self,
+        file_path: str,
+        record_frame: int,
+        track_index: int,
+        timeline_context: ResolveTimelineContext | None = None,
+    ) -> ImportedAudioPlacement:
         project = self._require_current_project()
         self._require_current_timeline(project)
         media_pool = project.GetMediaPool()
@@ -436,8 +454,7 @@ class RealResolveAdapter(ResolveAdapter):
 
         resolved_track = self.ensure_audio_track(track_index=track_index)
         previous_folder = self._safe_call(media_pool, "GetCurrentFolder")
-        target_folder = self._ensure_media_pool_music_folder(media_pool)
-        target_folder_name = self._safe_name(target_folder)
+        target_folder, target_folder_name = self._ensure_media_pool_music_folder(media_pool, timeline_context)
         if target_folder is not None:
             self._safe_call(media_pool, "SetCurrentFolder", target_folder)
         try:
@@ -561,22 +578,40 @@ class RealResolveAdapter(ResolveAdapter):
             f"after {max_attempts} attempt(s). File exists at {file_obj.absolute()}"
         )
 
-    def _ensure_media_pool_music_folder(self, media_pool: Any) -> Any | None:
+    def _ensure_media_pool_music_folder(
+        self,
+        media_pool: Any,
+        timeline_context: ResolveTimelineContext | None = None,
+    ) -> tuple[Any | None, str | None]:
         root_folder = self._safe_call(media_pool, "GetRootFolder")
         if root_folder is None:
             root_folder = self._safe_call(media_pool, "GetCurrentFolder")
         if root_folder is None:
-            return None
+            return None, None
 
         existing_folder = self._find_subfolder_by_name(root_folder, MEDIA_POOL_MUSIC_FOLDER_NAME)
         if existing_folder is not None:
-            return existing_folder
+            target_folder = existing_folder
+        else:
+            created_folder = self._try_add_subfolder(media_pool, root_folder, MEDIA_POOL_MUSIC_FOLDER_NAME)
+            target_folder = created_folder or self._find_subfolder_by_name(root_folder, MEDIA_POOL_MUSIC_FOLDER_NAME)
 
-        created_folder = self._try_add_subfolder(media_pool, root_folder, MEDIA_POOL_MUSIC_FOLDER_NAME)
-        if created_folder is not None:
-            return created_folder
+        if target_folder is None:
+            return None, None
 
-        return self._find_subfolder_by_name(root_folder, MEDIA_POOL_MUSIC_FOLDER_NAME)
+        folder_names = [MEDIA_POOL_MUSIC_FOLDER_NAME]
+        for nested_folder_name in _build_media_pool_folder_names(timeline_context):
+            nested_folder = self._find_subfolder_by_name(target_folder, nested_folder_name)
+            if nested_folder is None:
+                nested_folder = self._try_add_subfolder(media_pool, target_folder, nested_folder_name)
+            if nested_folder is None:
+                nested_folder = self._find_subfolder_by_name(target_folder, nested_folder_name)
+            if nested_folder is None:
+                break
+            target_folder = nested_folder
+            folder_names.append(nested_folder_name)
+
+        return target_folder, " / ".join(folder_names)
 
     def _find_subfolder_by_name(self, parent_folder: Any, folder_name: str) -> Any | None:
         for method_name in ("GetSubFolderList", "GetSubFolders"):
@@ -864,6 +899,30 @@ def _normalize_marker_keywords(value: Any) -> tuple[str, ...]:
         cleaned = tuple(str(part).strip() for part in value if str(part).strip())
         return cleaned
     return ()
+
+
+def _build_media_pool_folder_names(timeline_context: ResolveTimelineContext | None) -> list[str]:
+    if timeline_context is None:
+        return []
+
+    folder_names: list[str] = []
+    for value in (timeline_context.project_name, timeline_context.timeline_name):
+        cleaned = _sanitize_media_pool_folder_name(value)
+        if cleaned:
+            folder_names.append(cleaned)
+    return folder_names
+
+
+def _build_media_pool_folder_path(timeline_context: ResolveTimelineContext | None) -> str:
+    return " / ".join([MEDIA_POOL_MUSIC_FOLDER_NAME, *_build_media_pool_folder_names(timeline_context)])
+
+
+def _sanitize_media_pool_folder_name(value: str) -> str:
+    sanitized = " ".join(str(value).split()).strip()
+    for char in '/\\:*?"<>|':
+        sanitized = sanitized.replace(char, "-")
+    sanitized = sanitized.strip(" .")
+    return sanitized or "Untitled"
 
 
 def _match_codec_name(codecs: dict[Any, Any], preferred_codec: str) -> str | None:

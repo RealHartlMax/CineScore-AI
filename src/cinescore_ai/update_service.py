@@ -70,7 +70,15 @@ class GitHubReleaseUpdateService:
         except Exception as exc:
             raise RuntimeError(f"Update check failed: {exc}") from exc
 
-        if int(getattr(response, "status_code", 500) or 500) >= 400:
+        status_code = int(getattr(response, "status_code", 500) or 500)
+        if status_code == 404:
+            return UpdateCheckResult(
+                current_version=resolved_current_version,
+                latest_release=None,
+                update_available=False,
+            )
+
+        if status_code >= 400:
             raise RuntimeError(
                 f"Update check failed with HTTP {response.status_code}: {getattr(response, 'text', '')[:240]}"
             )

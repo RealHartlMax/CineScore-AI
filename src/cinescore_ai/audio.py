@@ -122,6 +122,10 @@ class AudioWorkflowService:
 
         provider = get_audio_provider(settings.provider_name)
         output_dir = Path(output_directory)
+        if timeline_context.project_name:
+            output_dir = output_dir / _slugify_fragment(timeline_context.project_name)
+        if timeline_context.timeline_name:
+            output_dir = output_dir / _slugify_fragment(timeline_context.timeline_name)
         output_dir.mkdir(parents=True, exist_ok=True)
 
         warnings: list[str] = []
@@ -187,6 +191,7 @@ class AudioWorkflowService:
                 file_path=str(output_path),
                 record_frame=plan.record_frame,
                 track_index=track_index,
+                timeline_context=timeline_context,
             )
             generated_segment = GeneratedAudioSegment(
                 plan=plan,

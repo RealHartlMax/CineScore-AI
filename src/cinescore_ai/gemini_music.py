@@ -171,6 +171,8 @@ class GeminiMusicGenerationService:
         output_dir = Path(output_directory)
         if timeline_context.project_name:
             output_dir = output_dir / _slugify_fragment(timeline_context.project_name)
+        if timeline_context.timeline_name:
+            output_dir = output_dir / _slugify_fragment(timeline_context.timeline_name)
         output_dir.mkdir(parents=True, exist_ok=True)
 
         directives = [parse_marker_music_directive(marker) for marker in timeline_context.markers]
@@ -239,10 +241,15 @@ class GeminiMusicGenerationService:
             )
             requested_format = music_settings.output_format.lower()
             returned_format = _audio_format_for_mime_type(inline_audio["mime_type"])
+            if requested_format == "wav" and returned_format != "wav":
+                raise GeminiMusicGenerationError(
+                    f"Cue '{cue_plan.label}' requested WAV but Gemini returned {inline_audio['mime_type']}. "
+                    "Strict WAV mode rejected the response."
+                )
             if requested_format != returned_format:
                 warnings.append(
                     f"Cue '{cue_plan.label}' requested {requested_format.upper()} but Gemini returned "
-                    f"{inline_audio['mime_type']}. Saved as {returned_format.upper()} to match content."
+                    f"{inline_audio['mime_type']}."
                 )
             output_path.write_bytes(inline_audio["data"])
 
@@ -312,6 +319,7 @@ class GeminiMusicGenerationService:
                     file_path=str(generated.output_path),
                     record_frame=cue_plan.record_frame,
                     track_index=cue_plan.track_index,
+                    timeline_context=timeline_context,
                 )
             except Exception as exc:
                 raise GeminiMusicGenerationError(str(exc)) from exc
@@ -452,6 +460,7 @@ class GeminiMusicGenerationService:
             preferred_fade_seconds = _cue_preferred_fade_seconds(cue_directives, music_settings)
             vocals_mode = _cue_vocals_mode(cue_directives, music_settings)
             explicit_length_seconds = _cue_length_override_seconds(cue_directives)
+            marker_duration_seconds = _cue_marker_duration_seconds(cue_directives, timeline_context.frame_rate)
             stop_boundary_seconds = _cue_stop_boundary_seconds(
                 directives=cue_directives,
                 cue_start_seconds=start_seconds,
@@ -473,6 +482,15 @@ class GeminiMusicGenerationService:
                 if requested_duration_seconds > base_duration_seconds and next_start_seconds < timeline_duration:
                     warnings.append(
                         f"Cue '{_cue_label(index, cue_directives)}' requested length {requested_duration_seconds:.1f}s "
+                        f"but the next marker on the same music lane starts after {base_duration_seconds:.1f}s. "
+                        "Clamping to the next same-lane marker."
+                    )
+                    requested_duration_seconds = base_duration_seconds
+            elif marker_duration_seconds is not None:
+                requested_duration_seconds = marker_duration_seconds
+                if requested_duration_seconds > base_duration_seconds and next_start_seconds < timeline_duration:
+                    warnings.append(
+                        f"Cue '{_cue_label(index, cue_directives)}' uses marker duration {requested_duration_seconds:.1f}s "
                         f"but the next marker on the same music lane starts after {base_duration_seconds:.1f}s. "
                         "Clamping to the next same-lane marker."
                     )
@@ -633,10 +651,11 @@ class GeminiMusicGenerationService:
 
         if (
             status_code >= 400
+            and music_settings.output_format.lower() == "wav"
             and "responseMimeType" in payload.get("generationConfig", {})
             and _response_mime_type_rejected(body)
         ):
-            fallback_payload = {
+            retry_payload = {
                 "contents": payload["contents"],
                 "generationConfig": {
                     "responseModalities": ["AUDIO", "TEXT"],
@@ -646,7 +665,7 @@ class GeminiMusicGenerationService:
                 "POST",
                 endpoint,
                 headers=request_headers,
-                json=fallback_payload,
+                json=retry_payload,
                 timeout=timeout,
             )
             status_code = int(getattr(response, "status_code", 0) or 0)
@@ -1144,6 +1163,18 @@ def _cue_length_override_seconds(directives: list[MarkerMusicDirective]) -> floa
     for directive in reversed(directives):
         if directive.length_seconds is not None:
             return directive.length_seconds
+    return None
+
+
+def _cue_marker_duration_seconds(directives: list[MarkerMusicDirective], frame_rate: float) -> float | None:
+    if frame_rate <= 0:
+        return None
+    if len(directives) != 1:
+        return None
+    for directive in directives:
+        duration_frames = int(directive.marker.duration_frames)
+        if duration_frames > 0:
+            return max(0.05, duration_frames / frame_rate)
     return None
 
 

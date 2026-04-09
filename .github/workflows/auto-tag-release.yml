@@ -24,7 +24,7 @@ jobs:
           COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
           printf '%s\n' "$COMMIT_MESSAGE"
-          if [[ "$COMMIT_MESSAGE" =~ (^|[[:space:]])(release|version)[[:space:]]*:[[:space:]]*v?([0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?)($|[[:space:]]) ]]; then
+          if [[ "$COMMIT_MESSAGE" =~ (^|[[:space:]])(release|version|hotfix)[[:space:]]*:[[:space:]]*v?([0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?)($|[[:space:]]) ]]; then
             VERSION="${BASH_REMATCH[3]}"
             echo "should_release=true" >> "$GITHUB_OUTPUT"
             echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
@@ -43,12 +43,12 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.10"
 
@@ -76,7 +76,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 

@@ -120,11 +120,18 @@ class AudioWorkflowServiceTests(unittest.TestCase):
 
             self.assertEqual(result.track_index, 4)
             self.assertEqual(len(result.segments), 2)
+            expected_output_dir = Path(temp_dir) / "mock-project" / "assembly-cut"
+            self.assertEqual(Path(result.output_directory), expected_output_dir)
             self.assertTrue(Path(result.segments[0].file_path).exists())
             self.assertTrue(Path(result.segments[1].file_path).exists())
+            self.assertEqual(Path(result.segments[0].file_path).parent, expected_output_dir)
             self.assertEqual(result.segments[0].placement.record_frame, context.start_frame)
             self.assertEqual(result.segments[1].placement.record_frame, context.start_frame + 240)
             self.assertEqual(result.segments[1].placement.track_index, 4)
+            self.assertEqual(
+                result.segments[0].placement.media_pool_folder_name,
+                "CineScore AI Music / Mock Project / Assembly Cut",
+            )
 
         self.assertEqual(session.calls[0][1], "https://api.aiml.example/v2/generate/audio")
         self.assertEqual(session.calls[1][1], "https://api.aiml.example/v2/generate/audio")

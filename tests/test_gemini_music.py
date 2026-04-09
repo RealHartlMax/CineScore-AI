@@ -65,7 +65,7 @@ class _FakeAudioProcessor:
 
 
 class _FailingImportResolveAdapter(MockResolveAdapter):
-    def place_audio_clip(self, file_path: str, record_frame: int, track_index: int):
+    def place_audio_clip(self, file_path: str, record_frame: int, track_index: int, timeline_context=None):
         raise RuntimeError(f"Resolve could not import audio file '{file_path}' into the media pool.")
 
 
@@ -241,6 +241,13 @@ class GeminiMusicGenerationServiceTests(unittest.TestCase):
             self.assertEqual(len(result.cues), 2)
             self.assertTrue(Path(result.cues[0].output_path).exists())
             self.assertTrue(Path(result.cues[1].output_path).exists())
+            expected_output_dir = Path(temp_dir) / "mock-project" / "assembly-cut"
+            self.assertEqual(Path(result.output_directory), expected_output_dir)
+            self.assertEqual(Path(result.cues[0].output_path).parent, expected_output_dir)
+            self.assertEqual(
+                result.cues[0].placement.media_pool_folder_name,
+                "CineScore AI Music / Mock Project / Assembly Cut",
+            )
             self.assertEqual(result.cues[0].mime_type, "audio/mpeg")
             self.assertEqual(result.cues[0].placement.track_index, 4)
             self.assertEqual(result.cues[1].placement.track_index, 5)
@@ -325,8 +332,8 @@ class GeminiMusicGenerationServiceTests(unittest.TestCase):
             self.assertEqual(result.model, "lyria-3-pro-preview")
             self.assertEqual(session.calls[0][2]["json"]["generationConfig"]["responseMimeType"], "audio/wav")
 
-    def test_generate_from_timeline_uses_returned_mime_for_extension(self) -> None:
-        """If WAV is requested but Gemini returns MPEG audio, save as .mp3 and emit a warning."""
+    def test_generate_from_timeline_rejects_mp3_when_wav_is_requested(self) -> None:
+        """If WAV is requested but Gemini returns MPEG audio, the request fails in strict WAV mode."""
         adapter = MockResolveAdapter()
         context = adapter.get_current_timeline_context()
         context.markers = []
@@ -364,19 +371,77 @@ class GeminiMusicGenerationServiceTests(unittest.TestCase):
             preview_path = Path(temp_dir) / "preview.mp4"
             preview_path.write_bytes(b"mp4-data")
 
+            with self.assertRaises(GeminiMusicGenerationError) as ctx:
+                service.generate_from_timeline(
+                    api_key="secret",
+                    gemini_settings=GeminiSettings(),
+                    music_settings=GeminiMusicSettings(model="Lyria 3 Pro", output_format="wav"),
+                    timeline_context=context,
+                    preview_path=preview_path,
+                    output_directory=temp_dir,
+                )
+
+            self.assertIn("requested WAV but Gemini returned audio/mpeg", str(ctx.exception))
+
+    def test_generate_from_timeline_uses_marker_duration_field_without_length_directive(self) -> None:
+        adapter = MockResolveAdapter()
+        context = adapter.get_current_timeline_context()
+        context.markers = [deepcopy(context.markers[0])]
+        context.markers[0].frame_offset = 0
+        context.markers[0].absolute_frame = context.start_frame
+        context.markers[0].relative_seconds = 0.0
+        context.markers[0].timestamp = "00:00:00.000"
+        context.markers[0].duration_frames = int(context.frame_rate * 5)  # Resolve marker duration field: 5 seconds
+        context.markers[0].name = "Duration cue"
+        context.markers[0].note = "simple cue without length directive"
+
+        session = _FakeSession(
+            [
+                _FakeResponse(
+                    200,
+                    {
+                        "candidates": [
+                            {
+                                "content": {
+                                    "parts": [
+                                        {
+                                            "inlineData": {
+                                                "mimeType": "audio/mpeg",
+                                                "data": b64encode(b"audio-bytes").decode("ascii"),
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                )
+            ]
+        )
+        service = GeminiMusicGenerationService(
+            resolve_adapter=adapter,
+            frame_extractor=_FakeFrameExtractor(),
+            audio_processor=_FakeAudioProcessor(),
+            session=session,
+        )
+
+        with TemporaryDirectory() as temp_dir:
+            preview_path = Path(temp_dir) / "preview.mp4"
+            preview_path.write_bytes(b"mp4-data")
+
             result = service.generate_from_timeline(
                 api_key="secret",
                 gemini_settings=GeminiSettings(),
-                music_settings=GeminiMusicSettings(model="Lyria 3 Pro", output_format="wav"),
+                music_settings=GeminiMusicSettings(model="lyria-3-pro-preview", output_format="mp3"),
                 timeline_context=context,
                 preview_path=preview_path,
                 output_directory=temp_dir,
             )
 
-            self.assertTrue(result.cues[0].output_path.endswith(".mp3"))
-            self.assertTrue(any("requested WAV but Gemini returned audio/mpeg" in warning for warning in result.warnings))
+            self.assertEqual(len(result.cues), 1)
+            self.assertAlmostEqual(result.cues[0].plan.requested_duration_seconds, 5.0, places=2)
 
-    def test_generate_from_timeline_retries_without_response_mime_type_when_rejected(self) -> None:
+    def test_generate_from_timeline_raises_when_response_mime_type_is_rejected(self) -> None:
         adapter = MockResolveAdapter()
         context = adapter.get_current_timeline_context()
         context.markers = []
@@ -422,19 +487,20 @@ class GeminiMusicGenerationServiceTests(unittest.TestCase):
             preview_path = Path(temp_dir) / "preview.mp4"
             preview_path.write_bytes(b"mp4-data")
 
-            result = service.generate_from_timeline(
-                api_key="secret",
-                gemini_settings=GeminiSettings(),
-                music_settings=GeminiMusicSettings(model="lyria-3-pro-preview", output_format="wav"),
-                timeline_context=context,
-                preview_path=preview_path,
-                output_directory=temp_dir,
-            )
+            with self.assertRaises(GeminiMusicGenerationError) as ctx:
+                service.generate_from_timeline(
+                    api_key="secret",
+                    gemini_settings=GeminiSettings(),
+                    music_settings=GeminiMusicSettings(model="lyria-3-pro-preview", output_format="wav"),
+                    timeline_context=context,
+                    preview_path=preview_path,
+                    output_directory=temp_dir,
+                )
 
             self.assertEqual(len(session.calls), 2)
             self.assertIn("responseMimeType", session.calls[0][2]["json"]["generationConfig"])
             self.assertNotIn("responseMimeType", session.calls[1][2]["json"]["generationConfig"])
-            self.assertTrue(result.cues[0].output_path.endswith(".mp3"))
+            self.assertIn("requested WAV but Gemini returned audio/mpeg", str(ctx.exception))
 
     def test_generate_from_timeline_raises_on_http_error(self) -> None:
         """An HTTP error from the Gemini API raises GeminiMusicGenerationError with status and body."""
@@ -830,6 +896,6 @@ class GeminiMusicGenerationServiceTests(unittest.TestCase):
                     output_directory=temp_dir,
                 )
 
-            output_root = Path(temp_dir) / "mock-project"
+            output_root = Path(temp_dir) / "mock-project" / "assembly-cut"
             generated_files = sorted(output_root.glob("*.mp3"))
             self.assertEqual(len(generated_files), 2)

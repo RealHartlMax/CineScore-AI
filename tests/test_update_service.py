@@ -64,6 +64,18 @@ class UpdateServiceTests(unittest.TestCase):
         self.assertEqual(result.latest_release.version, "0.2.0")
         self.assertEqual(len(session.calls), 1)
 
+    def test_check_for_update_treats_404_as_no_release_yet(self) -> None:
+        response = _FakeResponse(404, {})
+        response.text = '{"message":"Not Found"}'
+        session = _FakeSession(response)
+        service = GitHubReleaseUpdateService(session=session)
+
+        result = service.check_for_update(current_version="0.1.0")
+
+        self.assertFalse(result.update_available)
+        self.assertIsNone(result.latest_release)
+        self.assertEqual(result.current_version, "0.1.0")
+
     def test_render_windows_update_script_includes_runtime_targets(self) -> None:
         script = render_windows_update_script(
             ReleaseInfo(

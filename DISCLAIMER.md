@@ -2,6 +2,10 @@
 
 [English](#english) | [Deutsch](#deutsch)
 
+**Table of Contents (English):** [Non-Replacement Purpose](#non-replacement-purpose) | [Intended Use Cases](#intended-use-cases) | [Cost Considerations](#cost-considerations) | [Responsible Use](#responsible-use) | [Attribution](#attribution) | [Best Practice](#best-practice) | [Support & Donations](#support--donations)
+
+**Inhaltsverzeichnis (Deutsch):** [Kein Ersatz für Profis](#kein-ersatz-für-profis) | [Beabsichtigte Anwendungsfälle](#beabsichtigte-anwendungsfälle) | [Kostenaspekte](#kostenaspekte) | [Verantwortungsvoller Einsatz](#verantwortungsvoller-einsatz) | [Attribution und Anerkennung](#attribution-und-anerkennung) | [Best Practice](#best-practice-1) | [Unterstützung & Spenden](#unterstützung--spenden)
+
 ---
 
 ## English
@@ -103,3 +107,51 @@ Auch wenn rechtlich nicht erforderlich, ist Attribution sehr gerne gesehen und h
 **Menschliche Zusammenarbeit ist, wenn möglich, vorzuziehen.**
 
 Die überzeugendsten Soundtracks entstehen aus Partnerschaften zwischen Regisseuren, Komponisten und Sound-Profis, die gemeinsam arbeiten. CineScore-AI funktioniert am besten als Werkzeug innerhalb dieses kreativen Dialogs — nicht als Ersatz dafür.
+
+---
+
+## Support & Donations
+
+### English
+
+CineScore-AI is developed as an open-source project to support creative professionals and independent filmmakers. If you find this tool valuable, **voluntary donations** would help sustain and improve the project, as well as support other open-source initiatives.
+
+**Your contributions enable:**
+
+- Continued development and maintenance of CineScore-AI
+- Bug fixes and feature improvements
+- Support for new AI models and API providers as they emerge
+- Creation of new open-source tools for creative workflows
+- Community-driven initiatives in digital filmmaking and audio technology
+
+**Contributing is optional and always appreciated,** whether through:
+
+- Direct donations via Ko-Fi (see [FUNDING.yml](.github/FUNDING.yml) for active sponsorship links)
+- Contributing code, bug reports, or feature ideas on GitHub
+- Sharing the project with others in your creative community
+- Providing feedback and suggestions for improvement
+
+Every contribution, large or small, helps drive forward open-source innovation in creative technologies.
+
+---
+
+### Deutsch
+
+CineScore-AI wird als Open-Source-Projekt entwickelt, um kreative Profis und unabhängige Filmemacher zu unterstützen. Wenn du dieses Tool wertvoll findest, würden **freiwillige Spenden** helfen, das Projekt zu pflegen und zu verbessern, sowie andere Open-Source-Initiativen zu unterstützen.
+
+**Deine Beiträge ermöglichen:**
+
+- Kontinuierliche Entwicklung und Wartung von CineScore-AI
+- Fehlerbehebungen und Funktionsverbesserungen
+- Unterstützung für neue KI-Modelle und API-Anbieter, wenn sie entstehen
+- Erstellung neuer Open-Source-Tools für kreative Workflows
+- Gemeinschaftliche Initiativen im digitalen Filmemachen und Audio-Technologie
+
+**Beitragen ist optional und immer willkommen,** sei es durch:
+
+- Direkte Spenden über Ko-Fi (siehe [FUNDING.yml](.github/FUNDING.yml) für aktive Sponsorship-Links)
+- Beitragen von Code, Fehlermeldungen oder Verbesserungsvorschlägen auf GitHub
+- Teilen des Projekts mit anderen in deiner kreativen Community
+- Feedback und Verbesserungsvorschläge
+
+Jeder Beitrag, groß oder klein, hilft dabei, Open-Source-Innovation in kreativen Technologien voranzutreiben.
