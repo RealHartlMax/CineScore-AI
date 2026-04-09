@@ -61,8 +61,8 @@ jobs:
         run: |
           REQUESTED_VERSION="${{ needs.detect.outputs.version }}"
           APP_VERSION=$(python -c "import sys; sys.path.insert(0, 'src'); from cinescore_ai.version import get_app_version; print(get_app_version())")
-          NORMALIZED_REQUESTED_VERSION=$(python -c "from packaging.version import Version; print(Version('${REQUESTED_VERSION}'))")
-          NORMALIZED_APP_VERSION=$(python -c "from packaging.version import Version; print(Version('${APP_VERSION}'))")
+          NORMALIZED_REQUESTED_VERSION=$(python -c "import re; value='${REQUESTED_VERSION}'.strip(); value=value[1:] if value.lower().startswith('v') else value; print(re.sub(r'^(\d+\.\d+\.\d+)c$', r'\1rc0', value, flags=re.IGNORECASE))")
+          NORMALIZED_APP_VERSION=$(python -c "import re; value='${APP_VERSION}'.strip(); value=value[1:] if value.lower().startswith('v') else value; print(re.sub(r'^(\d+\.\d+\.\d+)c$', r'\1rc0', value, flags=re.IGNORECASE))")
           echo "Requested version: $REQUESTED_VERSION"
           echo "Application version: $APP_VERSION"
           echo "Normalized requested version: $NORMALIZED_REQUESTED_VERSION"
