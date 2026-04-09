@@ -46,16 +46,18 @@ jobs:
           SEMVER_PATTERN='^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$'
           TAG_PATTERN='^v[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$'
 
-          if [ "${GITHUB_EVENT_NAME}" = "push" ]; then
-            RELEASE_TAG="${GITHUB_REF_NAME}"
-            RELEASE_REF="${GITHUB_SHA}"
-          else
+          # Prefer explicit workflow inputs (workflow_call/workflow_dispatch)
+          # over event ref values to avoid resolving branch names like 'main'.
+          if [ -n "${INPUT_TAG_NAME}" ]; then
             RELEASE_TAG="${INPUT_TAG_NAME}"
-            if [ -n "${INPUT_RELEASE_SHA}" ]; then
-              RELEASE_REF="${INPUT_RELEASE_SHA}"
-            else
-              RELEASE_REF="refs/tags/${RELEASE_TAG}"
-            fi
+          else
+            RELEASE_TAG="${GITHUB_REF_NAME}"
+          fi
+
+          if [ -n "${INPUT_RELEASE_SHA}" ]; then
+            RELEASE_REF="${INPUT_RELEASE_SHA}"
+          else
+            RELEASE_REF="${GITHUB_SHA}"
           fi
 
           if [ -z "${RELEASE_TAG}" ]; then
@@ -73,7 +75,7 @@ jobs:
             # may be passed accidentally. Try to infer a valid release tag
             # from the requested commit SHA.
             if [ -n "${INPUT_RELEASE_SHA}" ]; then
-              INFERRED_TAG=$(git ls-remote --tags "https://github.com/${GITHUB_REPOSITORY}.git" | awk -v sha="${INPUT_RELEASE_SHA}" '$1 == sha {print $2}' | sed 's#refs/tags/##' | grep -E "${TAG_PATTERN}" | sort -V | tail -n 1)
+              INFERRED_TAG=$(git ls-remote --tags "https://github.com/${GITHUB_REPOSITORY}.git" | awk -v sha="${INPUT_RELEASE_SHA}" '$1 == sha {print $2}' | sed 's#refs/tags/##' | grep -E "${TAG_PATTERN}" | sort -V | tail -n 1 || true)
               if [ -n "${INFERRED_TAG}" ]; then
                 echo "Input tag '${RELEASE_TAG}' is invalid. Using inferred tag '${INFERRED_TAG}' for commit ${INPUT_RELEASE_SHA}."
                 RELEASE_TAG="${INFERRED_TAG}"
@@ -84,6 +86,10 @@ jobs:
               echo "Invalid release tag '${RELEASE_TAG}'. Expected format 'vX.Y.Z' (optionally with pre-release/build suffix)."
               exit 1
             fi
+          fi
+
+          if [ -z "${INPUT_RELEASE_SHA}" ]; then
+            RELEASE_REF="refs/tags/${RELEASE_TAG}"
           fi
 
           echo "release_tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
