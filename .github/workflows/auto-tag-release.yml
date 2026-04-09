@@ -78,9 +78,9 @@ jobs:
         shell: bash
         run: |
           REQUESTED_VERSION="${{ needs.detect.outputs.version }}"
-          APP_VERSION=$(python -c "import sys; sys.path.insert(0, 'src'); from cinescore_ai.version import get_app_version; print(get_app_version())")
-          NORMALIZED_REQUESTED_VERSION=$(python -c "import re; value='${REQUESTED_VERSION}'.strip(); value=value[1:] if value.lower().startswith('v') else value; value=re.sub(r'^(\d+\.\d+\.\d+)[c.](\w).*$', r'\1rc0', value, flags=re.IGNORECASE); print(re.sub(r'^(\d+\.\d+\.\d+)(a|b|rc)$', r'\1\20', value, flags=re.IGNORECASE))")
-          NORMALIZED_APP_VERSION=$(python -c "import re; value='${APP_VERSION}'.strip(); value=value[1:] if value.lower().startswith('v') else value; value=re.sub(r'^(\d+\.\d+\.\d+)[c.](\w).*$', r'\1rc0', value, flags=re.IGNORECASE); print(re.sub(r'^(\d+\.\d+\.\d+)(a|b|rc)$', r'\1\20', value, flags=re.IGNORECASE))")
+          APP_VERSION=$(python -c "import re, pathlib; text=pathlib.Path('pyproject.toml').read_text(encoding='utf-8'); m=re.search(r'^version\s*=\s*\"([^\"]+)\"', text, flags=re.MULTILINE); print(m.group(1) if m else '')")
+          NORMALIZED_REQUESTED_VERSION=$(python -c "import re; value='${REQUESTED_VERSION}'.strip(); value=value[1:] if value.lower().startswith('v') else value; value=re.sub(r'^(\d+\.\d+\.\d+)[c.](\w).*$', r'\1rc0', value, flags=re.IGNORECASE); print(re.sub(r'^(\d+\.\d+\.\d+)(a|b|rc)$', r'\g<1>\g<2>0', value, flags=re.IGNORECASE))")
+          NORMALIZED_APP_VERSION=$(python -c "import re; value='${APP_VERSION}'.strip(); value=value[1:] if value.lower().startswith('v') else value; value=re.sub(r'^(\d+\.\d+\.\d+)[c.](\w).*$', r'\1rc0', value, flags=re.IGNORECASE); print(re.sub(r'^(\d+\.\d+\.\d+)(a|b|rc)$', r'\g<1>\g<2>0', value, flags=re.IGNORECASE))")
           echo "Requested version: $REQUESTED_VERSION"
           echo "Application version: $APP_VERSION"
           echo "Normalized requested version: $NORMALIZED_REQUESTED_VERSION"

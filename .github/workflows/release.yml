@@ -148,8 +148,8 @@ jobs:
         run: |
           TAG_VERSION="${{ needs.context.outputs.release_version }}"
           APP_VERSION=$(python -c "from cinescore_ai.version import get_app_version; print(get_app_version())")
-          NORMALIZED_TAG_VERSION=$(python -c "import re; value='${TAG_VERSION}'.strip(); value=value[1:] if value.lower().startswith('v') else value; value=re.sub(r'^(\d+\.\d+\.\d+)[c.](\w).*$', r'\1rc0', value, flags=re.IGNORECASE); print(re.sub(r'^(\d+\.\d+\.\d+)(a|b|rc)$', r'\1\20', value, flags=re.IGNORECASE))")
-          NORMALIZED_APP_VERSION=$(python -c "import re; value='${APP_VERSION}'.strip(); value=value[1:] if value.lower().startswith('v') else value; value=re.sub(r'^(\d+\.\d+\.\d+)[c.](\w).*$', r'\1rc0', value, flags=re.IGNORECASE); print(re.sub(r'^(\d+\.\d+\.\d+)(a|b|rc)$', r'\1\20', value, flags=re.IGNORECASE))")
+          NORMALIZED_TAG_VERSION=$(python -c "import re; value='${TAG_VERSION}'.strip(); value=value[1:] if value.lower().startswith('v') else value; value=re.sub(r'^(\d+\.\d+\.\d+)[c.](\w).*$', r'\1rc0', value, flags=re.IGNORECASE); print(re.sub(r'^(\d+\.\d+\.\d+)(a|b|rc)$', r'\g<1>\g<2>0', value, flags=re.IGNORECASE))")
+          NORMALIZED_APP_VERSION=$(python -c "import re; value='${APP_VERSION}'.strip(); value=value[1:] if value.lower().startswith('v') else value; value=re.sub(r'^(\d+\.\d+\.\d+)[c.](\w).*$', r'\1rc0', value, flags=re.IGNORECASE); print(re.sub(r'^(\d+\.\d+\.\d+)(a|b|rc)$', r'\g<1>\g<2>0', value, flags=re.IGNORECASE))")
           echo "Release tag: ${{ needs.context.outputs.release_tag }}"
           echo "Tag version: $TAG_VERSION"
           echo "App version: $APP_VERSION"
