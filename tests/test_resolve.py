@@ -176,17 +176,19 @@ class ResolveAdapterTests(unittest.TestCase):
         media_pool = _MediaPoolStub(root)
         adapter = RealResolveAdapter(object())
 
-        resolved_folder = adapter._ensure_media_pool_music_folder(media_pool)
+        resolved_folder, folder_name = adapter._ensure_media_pool_music_folder(media_pool)
 
         self.assertIs(resolved_folder, existing)
+        self.assertEqual(folder_name, MEDIA_POOL_MUSIC_FOLDER_NAME)
 
     def test_ensure_media_pool_music_folder_creates_folder_when_missing(self) -> None:
         root = _MediaPoolFolder("Root")
         media_pool = _MediaPoolStub(root)
         adapter = RealResolveAdapter(object())
 
-        resolved_folder = adapter._ensure_media_pool_music_folder(media_pool)
+        resolved_folder, folder_name = adapter._ensure_media_pool_music_folder(media_pool)
 
         self.assertIsNotNone(resolved_folder)
         self.assertEqual(resolved_folder.GetName(), MEDIA_POOL_MUSIC_FOLDER_NAME)
+        self.assertEqual(folder_name, MEDIA_POOL_MUSIC_FOLDER_NAME)
         self.assertEqual(len(root.GetSubFolderList()), 1)
